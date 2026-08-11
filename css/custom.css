@@ -1,0 +1,183 @@
+/*
+  La Spesa - CSS custom minimo.
+
+  Regola seguita: tutto il resto dell'interfaccia usa esclusivamente classi
+  di Bootstrap 4.6 (bootstrap.min.css). Queste poche regole esistono solo
+  perche' Bootstrap 4 non offre un'utility per farlo:
+
+  - .text-strike     -> decorazione line-through (assente tra le utility
+                        text-decoration-* di Bootstrap 4)
+  - .content-spacer  -> spazio in fondo alla lista per non finire sotto la
+                        barra fixed-bottom di aggiunta articolo (l'altezza
+                        esatta della barra non corrisponde a nessuno step
+                        della scala spaziatura di Bootstrap)
+  - .toast-fixed     -> posizionamento del toast di conferma sopra la barra
+                        fixed-bottom (Bootstrap 4 non ha utility di offset
+                        arbitrari, solo position-fixed generico)
+  - .autocomplete-dropdown -> menu suggerimenti sotto l'input (componente
+                        autocomplete-input), niente plugin JS/Popper
+  - .swatch-btn      -> pulsante colore circolare per la palette a swatch
+                        delle categorie ricetta
+
+  In fondo al file: blocco tema scuro (html.theme-dark), commentato a parte
+  perche' e' un insieme di override piu' ampio, non una singola utility.
+*/
+
+.text-strike {
+  text-decoration: line-through;
+}
+
+.content-spacer {
+  padding-bottom: 96px;
+}
+
+.toast-fixed {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  z-index: 1080;
+  max-width: 90%;
+}
+
+/*
+  .mdi-icon -> allineamento verticale delle icone MDI inline rispetto al
+  testo adiacente. Bootstrap 4 non ha una utility per questo (le icone non
+  fanno parte del framework), quindi e' indispensabile.
+*/
+.mdi-icon {
+  vertical-align: -0.15em;
+}
+
+/*
+  .autocomplete-dropdown -> posizionamento del menu suggerimenti sotto
+  l'input (componente autocomplete-input, piano alimentare/ricette).
+  Bootstrap 4 non offre positioning per dropdown "liberi" senza il plugin
+  JS/Popper, che l'app evita volutamente.
+*/
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1055;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/*
+  .swatch-btn -> pulsante colore circolare per la palette a swatch delle
+  categorie ricetta (nessuna utility Bootstrap 4 per bottoni-colore).
+*/
+.swatch-btn {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  padding: 0;
+  border: 2px solid transparent;
+}
+
+.swatch-btn.selected {
+  border-color: #343a40;
+}
+
+/*
+  Tema scuro (attivato con la classe .theme-dark su <html>, interruttore
+  in Impostazioni) -> override manuale perche' Bootstrap 4.6 non ha un
+  tema scuro nativo (introdotto solo in Bootstrap 5.3, che il progetto
+  non usa per i motivi di compatibilita' Edge 14 spiegati nel README).
+  Copre solo gli sfondi/testi dei componenti Bootstrap che l'app usa
+  davvero; le classi contestuali (alert-warning/success/info delle
+  colonne pasto, badge colorati) restano invariate: sono pastelli con
+  testo scuro gia' leggibili su entrambi gli sfondi.
+*/
+html.theme-dark body {
+  background-color: #1a1d20;
+  color: #e9ecef;
+}
+
+html.theme-dark .card,
+html.theme-dark .card-header,
+html.theme-dark .list-group-item,
+html.theme-dark .modal-content {
+  background-color: #26292c;
+  color: #e9ecef;
+  border-color: #3a3f44;
+}
+
+/*
+  .bg-light e' un'utility Bootstrap definita con !important (come tutte le
+  utility bg-*): deve avere !important anche qui, altrimenti vince sempre
+  quella di bootstrap.min.css indipendentemente dalla specificita'.
+*/
+html.theme-dark .bg-light {
+  background-color: #26292c !important;
+  color: #e9ecef;
+}
+
+html.theme-dark .fixed-bottom.bg-white {
+  background-color: #26292c !important;
+  border-color: #3a3f44;
+}
+
+html.theme-dark .border,
+html.theme-dark .border-top,
+html.theme-dark .border-bottom {
+  border-color: #3a3f44 !important;
+}
+
+html.theme-dark .text-dark {
+  color: #e9ecef !important;
+}
+
+html.theme-dark .text-muted {
+  color: #adb5bd !important;
+}
+
+html.theme-dark .badge-light {
+  background-color: #3a3f44;
+  color: #e9ecef;
+}
+
+html.theme-dark .form-control,
+html.theme-dark .custom-select {
+  background-color: #2f3337;
+  border-color: #3a3f44;
+  color: #e9ecef;
+}
+
+html.theme-dark .form-control::placeholder {
+  color: #8a9096;
+}
+
+html.theme-dark .form-control:disabled,
+html.theme-dark .custom-select:disabled {
+  background-color: #26292c;
+  color: #8a9096;
+}
+
+html.theme-dark .close {
+  color: #e9ecef;
+  text-shadow: none;
+}
+
+html.theme-dark .btn-outline-secondary {
+  color: #ced4da;
+  border-color: #6c757d;
+}
+
+html.theme-dark .btn-outline-secondary:hover {
+  background-color: #3a3f44;
+  color: #fff;
+}
+
+html.theme-dark .table {
+  color: #e9ecef;
+}
+
+html.theme-dark .table-bordered,
+html.theme-dark .table-bordered td,
+html.theme-dark .table-bordered th {
+  border-color: #3a3f44;
+}

@@ -1,0 +1,19 @@
+# La Spesa - regole di cache
+#
+# Strategia: HTML/manifest/config non vanno MAI in cache (il browser deve
+# sempre ricontrollarli), mentre CSS/JS/immagini possono restare in cache
+# a lungo, perche' ogni aggiornamento cambia il parametro "?v=..." nel loro
+# URL (vedi il commento in cima a index.html) costringendo comunque il
+# telefono a scaricarne una copia nuova quando serve davvero.
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|json|xml)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  <FilesMatch "\.(css|js|png)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>

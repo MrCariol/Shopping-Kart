@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>La Spesa</title>
+
+<meta name="description" content="Lista della spesa e piano alimentare settimanale, offline, con ricette e categorie personalizzabili.">
+
+<!--
+  CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
+  e' molto aggressiva. Il metodo usato qui, senza build step e senza
+  Service Worker, e' una versione manuale in query string su ogni file
+  locale: "?v=20260811a" in fondo a css/js/manifest/icone.
+
+  Prima di ogni pubblicazione: cerca "20260811a" in QUESTO file E in
+  manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
+  valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
+  il telefono e' costretto a scaricarne una copia nuova anche se il nome
+  del file resta identico.
+-->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<link rel="manifest" href="manifest.json?v=20260811a">
+<meta name="theme-color" content="#343a40">
+
+<!-- iOS: comportamento "app installata" da schermata Home -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Spesa">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260811a">
+
+<!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
+<meta name="msapplication-config" content="browserconfig.xml?v=20260811a">
+<meta name="msapplication-TileColor" content="#343a40">
+
+<link rel="icon" href="icons/icon-192.png?v=20260811a">
+
+<!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260811a">
+<!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
+<link rel="stylesheet" href="css/custom.css?v=20260811a">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===================== TESTATA ===================== -->
+  <nav class="navbar navbar-dark bg-dark py-2">
+    <span class="navbar-brand mb-0 h5"><mdi-icon name="cart-outline" :size="22" class="mr-1"></mdi-icon>La Spesa</span>
+  </nav>
+
+  <!-- ===================== NAVIGAZIONE VISTE (SPA) ===================== -->
+  <ul class="nav nav-pills nav-fill bg-light border-bottom py-1">
+    <li class="nav-item">
+      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'lista' }" @click.prevent="setView('lista')" aria-label="Lista della spesa">
+        <mdi-icon name="cart-outline" :size="24"></mdi-icon>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'piano' }" @click.prevent="setView('piano')" aria-label="Piano alimentare">
+        <mdi-icon name="calendar-week" :size="24"></mdi-icon>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'categorie-lista' }" @click.prevent="setView('categorie-lista')" aria-label="Categorie lista della spesa e prodotti">
+        <mdi-icon name="tag-multiple-outline" :size="24"></mdi-icon>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'categorie-ricette' }" @click.prevent="setView('categorie-ricette')" aria-label="Categorie ricette">
+        <mdi-icon name="palette-outline" :size="24"></mdi-icon>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'prodotti' }" @click.prevent="setView('prodotti')" aria-label="Prodotti">
+        <mdi-icon name="food-apple-outline" :size="24"></mdi-icon>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'ricette' }" @click.prevent="setView('ricette')" aria-label="Ricette">
+        <mdi-icon name="silverware-fork-knife" :size="24"></mdi-icon>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'impostazioni' }" @click.prevent="setView('impostazioni')" aria-label="Impostazioni">
+        <mdi-icon name="cog-outline" :size="24"></mdi-icon>
+      </a>
+    </li>
+  </ul>
+
+  <main class="container content-spacer pt-3">
+
+    <!-- ===================== VISTA: LISTA DELLA SPESA ===================== -->
+    <template v-if="view === 'lista'">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <select class="custom-select custom-select-sm" style="max-width: 200px;" v-model="sortMode" aria-label="Ordina lista">
+          <option value="categoria">Ordina: per categoria</option>
+          <option value="alpha-asc">Ordina: A → Z</option>
+          <option value="alpha-desc">Ordina: Z → A</option>
+        </select>
+        <span>
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-2" v-if="doneCount > 0" @click="svuotaAcquistati">Svuota presi</button>
+          <span class="badge badge-secondary">{{ doneCount }} / {{ totalCount }} presi</span>
+        </span>
+      </div>
+
+      <div class="text-center text-muted py-5" v-if="totalCount === 0">
+        <mdi-icon name="cart-off" :size="48" class="mb-2 text-muted"></mdi-icon>
+        <p class="h5 text-dark mb-1">La lista è vuota</p>
+        <p class="mb-0">Aggiungi il primo articolo dalla barra qui sotto.</p>
+      </div>
+
+      <!-- vista per categoria -->
+      <template v-else-if="sortMode === 'categoria'">
+        <div class="mb-4" v-for="group in visibleGroups" :key="group.id || 'senza-categoria'">
+          <div class="d-flex justify-content-between align-items-center text-uppercase text-muted small border-bottom pb-1 mb-1">
+            <span>{{ group.nome }}</span>
+            <span class="badge badge-secondary">{{ group.items.length }}</span>
+          </div>
+          <ul class="list-group list-group-flush">
+            <item-row
+              v-for="item in group.items"
+              :key="item.id"
+              :item="item"
+              :units="units"
+              :categories="categorie"
+              @remove="removeItem">
+            </item-row>
+          </ul>
+        </div>
+      </template>
+
+      <!-- vista alfabetica piatta (asc / desc) -->
+      <template v-else>
+        <ul class="list-group list-group-flush">
+          <item-row
+            v-for="item in sortedFlatItems"
+            :key="item.id"
+            :item="item"
+            :units="units"
+            :categories="categorie"
+            @remove="removeItem">
+          </item-row>
+        </ul>
+      </template>
+
+      <!-- storico: prodotti gia' acquistati in passato, per riaggiungerli rapidamente -->
+      <div class="mt-4 pt-3 border-top" v-if="prodottiStorico.length > 0">
+        <button type="button" class="btn btn-link btn-block d-flex justify-content-between align-items-center text-decoration-none px-0" @click="storicoAperto = !storicoAperto">
+          <span class="text-dark">Già acquistati in passato ({{ prodottiStorico.length }})</span>
+          <mdi-icon :name="storicoAperto ? 'chevron-up' : 'chevron-down'" :size="18"></mdi-icon>
+        </button>
+        <div class="d-flex flex-wrap mt-2" v-if="storicoAperto">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm mr-2 mb-2"
+            v-for="p in prodottiStorico"
+            :key="p.id"
+            @click="riaggiungiDaStorico(p)">
+            <mdi-icon name="plus" :size="12" class="mr-1"></mdi-icon>{{ p.nome }}
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- ===================== VISTA: PIANO ALIMENTARE ===================== -->
+    <template v-else-if="view === 'piano'">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="prevWeek" aria-label="Settimana precedente">
+          <mdi-icon name="chevron-left"></mdi-icon>
+        </button>
+        <div class="text-center">
+          <div class="font-weight-bold">{{ weekRangeLabel }}</div>
+          <button type="button" class="btn btn-link btn-sm p-0" @click="vaiOggi">Oggi</button>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="nextWeek" aria-label="Settimana successiva">
+          <mdi-icon name="chevron-right"></mdi-icon>
+        </button>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <span class="mb-1">
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-1" @click="copiaSettimana">
+            <mdi-icon name="content-copy" :size="14" class="mr-1"></mdi-icon>Copia settimana
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" v-if="clipboard && clipboard.type === 'week'" @click="incollaSettimana">
+            <mdi-icon name="content-paste" :size="14" class="mr-1"></mdi-icon>Incolla settimana
+          </button>
+        </span>
+        <button type="button" class="btn btn-primary btn-sm mb-1" @click="apriGeneraLista">
+          <mdi-icon name="basket-outline" :size="14" class="mr-1"></mdi-icon>Genera lista
+        </button>
+      </div>
+
+      <day-row
+        v-for="d in weekDates"
+        :key="d.getTime()"
+        :date="d"
+        :meals="mealsForDate(d)"
+        :ricette="ricette"
+        :is-today="isToday(d)"
+        :clipboard="clipboard"
+        @add-recipe="apriAggiungiRicettaCella(d, $event)"
+        @remove-recipe="rimuoviRicettaDaCella(d, $event.mealKey, $event.ricettaId)"
+        @edit-recipe="apriEditorRicettaDaId($event)"
+        @copy-day="copiaGiorno(d)"
+        @paste-day="incollaGiorno(d)">
+      </day-row>
+    </template>
+
+    <!-- ===================== VISTA: CATEGORIE LISTA DELLA SPESA / PRODOTTI ===================== -->
+    <template v-else-if="view === 'categorie-lista'">
+      <h5 class="mb-3">Categorie lista della spesa e prodotti</h5>
+      <ul class="list-group mb-2">
+        <li class="list-group-item d-flex align-items-center bg-light">
+          <input type="text" class="form-control form-control-sm" :value="senzaCategoriaLabel" disabled>
+        </li>
+        <li class="list-group-item d-flex align-items-center" v-for="(cat, index) in categorie" :key="cat.id">
+          <input type="text" class="form-control form-control-sm mr-1" v-model="cat.nome">
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-1" :disabled="index === 0" @click="moveCategoryUp(index)" aria-label="Sposta su"><mdi-icon name="chevron-up"></mdi-icon></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-1" :disabled="index === categorie.length - 1" @click="moveCategoryDown(index)" aria-label="Sposta giù"><mdi-icon name="chevron-down"></mdi-icon></button>
+          <button type="button" class="btn btn-outline-danger btn-sm" @click="deleteCategory(cat)" aria-label="Elimina categoria"><mdi-icon name="trash-can-outline"></mdi-icon></button>
+        </li>
+      </ul>
+      <div class="input-group mb-1">
+        <input type="text" class="form-control" v-model="newCategoryNome" placeholder="Nuova categoria…" @keyup.enter="addCategory">
+        <div class="input-group-append">
+          <button type="button" class="btn btn-outline-primary" @click="addCategory">Aggiungi</button>
+        </div>
+      </div>
+      <p class="small text-muted mb-0">"Senza categoria" è fissa e viene sempre mostrata per prima.</p>
+    </template>
+
+    <!-- ===================== VISTA: CATEGORIE RICETTE ===================== -->
+    <template v-else-if="view === 'categorie-ricette'">
+      <h5 class="mb-3">Categorie ricette</h5>
+      <ul class="list-group mb-2">
+        <li class="list-group-item" v-for="(cat, index) in categorieRicette" :key="cat.id">
+          <div class="d-flex align-items-center mb-1">
+            <input type="text" class="form-control form-control-sm mr-1" v-model="cat.nome">
+            <button type="button" class="btn btn-outline-secondary btn-sm mr-1" :disabled="index === 0" @click="moveCategoriaRicettaUp(index)" aria-label="Sposta su"><mdi-icon name="chevron-up"></mdi-icon></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm mr-1" :disabled="index === categorieRicette.length - 1" @click="moveCategoriaRicettaDown(index)" aria-label="Sposta giù"><mdi-icon name="chevron-down"></mdi-icon></button>
+            <button type="button" class="btn btn-outline-danger btn-sm" @click="deleteCategoriaRicetta(cat)" aria-label="Elimina categoria ricetta"><mdi-icon name="trash-can-outline"></mdi-icon></button>
+          </div>
+          <div class="d-flex align-items-center flex-wrap">
+            <span class="small text-muted mr-2">Colore:</span>
+            <button type="button" class="swatch-btn mr-1" v-for="c in swatchColors" :key="c" :class="{ selected: cat.colore === c }" :style="{ backgroundColor: c }" @click="cat.colore = c" :aria-label="'Colore ' + c"></button>
+          </div>
+        </li>
+      </ul>
+      <div class="mb-1">
+        <input type="text" class="form-control mb-2" v-model="newCategoriaRicettaNome" placeholder="Nuova categoria ricetta…" @keyup.enter="addCategoriaRicetta">
+        <div class="d-flex align-items-center flex-wrap mb-2">
+          <span class="small text-muted mr-2">Colore:</span>
+          <button type="button" class="swatch-btn mr-1" v-for="c in swatchColors" :key="c" :class="{ selected: newCategoriaRicettaColore === c }" :style="{ backgroundColor: c }" @click="newCategoriaRicettaColore = c" :aria-label="'Colore ' + c"></button>
+        </div>
+        <button type="button" class="btn btn-outline-primary" @click="addCategoriaRicetta">Aggiungi categoria ricetta</button>
+      </div>
+    </template>
+
+    <!-- ===================== VISTA: PRODOTTI ===================== -->
+    <template v-else-if="view === 'prodotti'">
+      <h5 class="mb-3">Prodotti</h5>
+      <ul class="list-group mb-2">
+        <li class="list-group-item" v-for="p in prodotti" :key="p.id">
+          <div class="form-row align-items-center no-gutters">
+            <div class="col-5 pr-1">
+              <input type="text" class="form-control form-control-sm" v-model="p.nome">
+            </div>
+            <div class="col-3 pr-1">
+              <select class="form-control form-control-sm" v-model="p.unita">
+                <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
+              </select>
+            </div>
+            <div class="col-3 pr-1">
+              <select class="form-control form-control-sm" v-model="p.categoriaId">
+                <option :value="null">Senza categoria</option>
+                <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
+              </select>
+            </div>
+            <div class="col-1">
+              <button type="button" class="btn btn-outline-danger btn-sm" @click="deleteProdotto(p)" aria-label="Elimina prodotto"><mdi-icon name="trash-can-outline" :size="16"></mdi-icon></button>
+            </div>
+          </div>
+        </li>
+        <li class="list-group-item text-muted small" v-if="prodotti.length === 0">
+          Nessun prodotto ancora creato: si creano anche al volo mentre componi una ricetta.
+        </li>
+      </ul>
+      <div class="form-row no-gutters">
+        <div class="col-5 pr-1">
+          <input type="text" class="form-control" v-model="newProdottoNome" placeholder="Nuovo prodotto…" @keyup.enter="addProdotto">
+        </div>
+        <div class="col-3 pr-1">
+          <select class="form-control" v-model="newProdottoUnita">
+            <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
+          </select>
+        </div>
+        <div class="col-3 pr-1">
+          <select class="form-control" v-model="newProdottoCategoriaId">
+            <option :value="null">Senza categoria</option>
+            <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
+          </select>
+        </div>
+        <div class="col-1">
+          <button type="button" class="btn btn-primary btn-block h-100 px-0" @click="addProdotto" aria-label="Aggiungi prodotto"><mdi-icon name="plus"></mdi-icon></button>
+        </div>
+      </div>
+    </template>
+
+    <!-- ===================== VISTA: RICETTE ===================== -->
+    <template v-else-if="view === 'ricette'">
+      <h5 class="mb-3">Ricette</h5>
+      <ul class="list-group mb-2">
+        <li class="list-group-item d-flex justify-content-between align-items-center" v-for="r in ricette" :key="r.id">
+          <button type="button" class="btn btn-link text-left text-dark p-0 flex-grow-1 text-decoration-none" @click="apriEditorRicettaEsistente(r)">
+            <div>{{ r.nome }}</div>
+            <div>
+              <span
+                class="badge mr-1"
+                v-for="cid in r.categorieIds"
+                :key="cid"
+                :style="{ backgroundColor: (categoriaRicettaById(cid) || {}).colore || '#6c757d', color: '#fff' }">
+                {{ (categoriaRicettaById(cid) || {}).nome || '—' }}
+              </span>
+              <span class="small text-muted">{{ r.ingredienti.length }} ingrediente/i</span>
+            </div>
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm ml-2" @click="deleteRicetta(r)" aria-label="Elimina ricetta"><mdi-icon name="trash-can-outline" :size="16"></mdi-icon></button>
+        </li>
+        <li class="list-group-item text-muted small" v-if="ricette.length === 0">Nessuna ricetta ancora creata.</li>
+      </ul>
+      <button type="button" class="btn btn-outline-primary" @click="apriEditorRicettaNuova('')">
+        <mdi-icon name="plus" class="mr-1"></mdi-icon>Nuova ricetta
+      </button>
+    </template>
+
+    <!-- ===================== VISTA: IMPOSTAZIONI ===================== -->
+    <template v-else>
+      <h5 class="mb-3">Impostazioni</h5>
+
+      <!-- aspetto -->
+      <section class="mb-4">
+        <h6 class="text-uppercase text-muted small">Aspetto</h6>
+        <div class="custom-control custom-switch">
+          <input type="checkbox" class="custom-control-input" id="tema-scuro-switch" v-model="temaScuro">
+          <label class="custom-control-label" for="tema-scuro-switch">Tema scuro</label>
+        </div>
+      </section>
+
+      <!-- backup -->
+      <section class="mb-4">
+        <h6 class="text-uppercase text-muted small">Backup dati</h6>
+        <div class="d-flex flex-column">
+          <button type="button" class="btn btn-primary mb-2" @click="exportBackup"><mdi-icon name="tray-arrow-down" class="mr-1"></mdi-icon>Esporta backup (JSON)</button>
+          <button type="button" class="btn btn-outline-secondary" @click="triggerImport"><mdi-icon name="tray-arrow-up" class="mr-1"></mdi-icon>Importa backup (JSON)</button>
+          <input
+            type="file"
+            accept="application/json,.json"
+            class="d-none"
+            ref="importFileInput"
+            @change="importBackup">
+        </div>
+        <p class="small text-muted mt-2 mb-0">Il backup include lista della spesa, categorie, prodotti, ricette e piano alimentare.</p>
+      </section>
+    </template>
+
+  </main>
+
+  <!-- ===================== BARRA AGGIUNTA ARTICOLO (solo vista Lista) ===================== -->
+  <form v-if="view === 'lista'" class="fixed-bottom bg-white border-top p-2" @submit.prevent="addItem">
+    <div class="form-row no-gutters">
+      <div class="col-6 pr-1">
+        <input
+          type="text"
+          id="new-item-input"
+          class="form-control"
+          v-model="newItemNome"
+          placeholder="Aggiungi articolo…"
+          autocomplete="off">
+      </div>
+      <div class="col-2 pr-1">
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          class="form-control"
+          v-model.number="newItemQuantita"
+          aria-label="Quantità">
+      </div>
+      <div class="col-3 pr-1">
+        <select class="custom-select" v-model="newItemUnita" aria-label="Unità di misura">
+          <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
+        </select>
+      </div>
+      <div class="col-1">
+        <button type="submit" class="btn btn-primary btn-block h-100 px-0 d-flex align-items-center justify-content-center" aria-label="Aggiungi">
+          <mdi-icon name="plus" :size="22"></mdi-icon>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <!-- ===================== TOAST ===================== -->
+  <div class="toast-fixed alert alert-dark shadow-sm mb-0 py-2 px-3" v-if="toastMessage" role="status">
+    {{ toastMessage }}
+  </div>
+
+  <!-- ===================== MODALE: AGGIUNGI RICETTA A CELLA ===================== -->
+  <template v-if="showAddRecipeModal">
+    <div class="modal-backdrop show" @click="chiudiAggiungiRicettaCella"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Aggiungi ricetta
+              <small class="d-block text-muted" v-if="addRecipeModalContext">{{ pastoLabel(addRecipeModalContext.mealKey) }} — {{ giornoLabel(addRecipeModalContext.date) }}</small>
+            </h5>
+            <button type="button" class="close" @click="chiudiAggiungiRicettaCella" aria-label="Chiudi">
+              <mdi-icon name="close" :size="20"></mdi-icon>
+            </button>
+          </div>
+          <div class="modal-body">
+            <autocomplete-input
+              :items="ricette"
+              placeholder="Cerca o crea una ricetta…"
+              @select="selezionaRicettaPerCella"
+              @create="creaRicettaPerCella">
+            </autocomplete-input>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="chiudiAggiungiRicettaCella">Chiudi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===================== MODALE: EDITOR RICETTA ===================== -->
+  <template v-if="showRecipeEditor">
+    <div class="modal-backdrop show" @click="chiudiEditorRicetta"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">{{ ricettaDraftIsNew ? 'Nuova ricetta' : 'Modifica ricetta' }}</h5>
+            <button type="button" class="close" @click="chiudiEditorRicetta" aria-label="Chiudi">
+              <mdi-icon name="close" :size="20"></mdi-icon>
+            </button>
+          </div>
+          <div class="modal-body" v-if="ricettaDraft">
+            <div class="form-group">
+              <label class="small text-muted mb-1">Nome ricetta</label>
+              <input type="text" class="form-control" v-model="ricettaDraft.nome" placeholder="Es. Pollo al forno">
+            </div>
+
+            <div class="form-group">
+              <label class="small text-muted mb-1 d-block">Categorie</label>
+              <button
+                type="button"
+                class="btn btn-sm mr-1 mb-1"
+                v-for="cat in categorieRicette"
+                :key="cat.id"
+                :style="ricettaDraft.categorieIds.indexOf(cat.id) !== -1
+                  ? { backgroundColor: cat.colore, color: '#fff', borderColor: cat.colore }
+                  : { borderColor: cat.colore, color: cat.colore }"
+                @click="toggleCategoriaRicettaDraft(cat.id)">
+                {{ cat.nome }}
+              </button>
+            </div>
+
+            <div class="form-group">
+              <label class="small text-muted mb-1 d-block">Ingredienti</label>
+
+              <div class="card card-body p-2 mb-2" v-for="(ing, index) in ricettaDraft.ingredienti" :key="index">
+                <div class="d-flex align-items-center" v-if="ing.prodottoId && ingredienteInCreazione !== index">
+                  <span class="flex-grow-1">
+                    {{ (prodottoById(ing.prodottoId) || {}).nome }}
+                    <span class="text-muted small">({{ (prodottoById(ing.prodottoId) || {}).unita }})</span>
+                  </span>
+                  <button type="button" class="btn btn-link btn-sm p-0" @click="cambiaProdottoIngrediente(index)">cambia</button>
+                </div>
+
+                <autocomplete-input
+                  v-else-if="ingredienteInCreazione !== index"
+                  :items="prodotti"
+                  placeholder="Cerca o crea un prodotto…"
+                  @select="selezionaProdottoIngrediente(index, $event)"
+                  @create="avviaCreazioneProdottoInline(index, $event)">
+                </autocomplete-input>
+
+                <div v-if="ingredienteInCreazione === index" class="border rounded p-2 mt-1">
+                  <div class="small text-muted mb-1">Nuovo prodotto</div>
+                  <input type="text" class="form-control form-control-sm mb-1" v-model="nuovoProdottoNomeInline" placeholder="Nome prodotto">
+                  <div class="form-row no-gutters mb-1">
+                    <div class="col-6 pr-1">
+                      <select class="form-control form-control-sm" v-model="nuovoProdottoUnitaInline">
+                        <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <select class="form-control form-control-sm" v-model="nuovoProdottoCategoriaInline">
+                        <option :value="null">Senza categoria</option>
+                        <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-primary mr-1" @click="confermaNuovoProdottoInline(index)">Crea prodotto</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="annullaCreazioneProdottoInline">Annulla</button>
+                </div>
+
+                <div class="d-flex align-items-center mt-2">
+                  <input type="number" min="0" step="0.1" class="form-control form-control-sm mr-2" style="max-width: 100px;" v-model.number="ing.quantita" aria-label="Quantità">
+                  <button type="button" class="btn btn-sm btn-outline-danger ml-auto" @click="rimuoviIngredienteDraft(index)" aria-label="Rimuovi ingrediente">
+                    <mdi-icon name="trash-can-outline" :size="14"></mdi-icon>
+                  </button>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn-outline-secondary btn-sm" @click="aggiungiIngredienteDraft">
+                <mdi-icon name="plus" :size="14" class="mr-1"></mdi-icon>Aggiungi ingrediente
+              </button>
+            </div>
+
+            <p class="text-danger small mb-0" v-if="ricettaDraftErrore">{{ ricettaDraftErrore }}</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="chiudiEditorRicetta">{{ ricettaDraftIsNew ? 'Annulla' : 'Chiudi' }}</button>
+            <button type="button" class="btn btn-primary" @click="salvaRicetta">Salva</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===================== MODALE: GENERA LISTA DALLA PIANIFICAZIONE ===================== -->
+  <template v-if="showGeneraListaModal">
+    <div class="modal-backdrop show" @click="chiudiGeneraLista"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Genera lista della spesa</h5>
+            <button type="button" class="close" @click="chiudiGeneraLista" aria-label="Chiudi">
+              <mdi-icon name="close" :size="20"></mdi-icon>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted">Seleziona i pasti della settimana {{ weekRangeLabel }} da cui sommare gli ingredienti.</p>
+
+            <div class="d-flex justify-content-end mb-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm mr-1" @click="selezionaTuttaSettimana(true)">Seleziona tutto</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" @click="selezionaTuttaSettimana(false)">Deseleziona tutto</button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered text-center mb-0">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th v-for="pasto in pastiConfig" :key="pasto.key">
+                      <button type="button" class="btn btn-link btn-sm p-0" @click="toggleSelezionePasto(pasto.key)">{{ pasto.label }}</button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="d in weekDates" :key="d.getTime()">
+                    <td class="text-left align-middle">
+                      <button type="button" class="btn btn-link btn-sm p-0" @click="toggleSelezioneGiorno(d)">{{ giornoLabel(d) }}</button>
+                    </td>
+                    <td class="align-middle" v-for="pasto in pastiConfig" :key="pasto.key">
+                      <input type="checkbox" v-model="selezioneGiorno(d)[pasto.key]" :aria-label="pasto.label + ' ' + giornoLabel(d)">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="chiudiGeneraLista">Annulla</button>
+            <button type="button" class="btn btn-primary" @click="confermaGeneraLista">Genera</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+</div>
+
+<!-- ===================== TEMPLATE: RIGA ARTICOLO (Lista della spesa) ===================== -->
+<script type="text/x-template" id="item-row-template">
+  <li class="list-group-item px-0">
+    <div class="d-flex align-items-center">
+      <button
+        type="button"
+        class="btn btn-sm mr-2"
+        :class="item.acquistato ? 'btn-success' : 'btn-outline-secondary'"
+        style="min-width: 2.6rem; min-height: 2.6rem;"
+        @click="toggleDone"
+        aria-label="Segna come acquistato">
+        <mdi-icon v-if="item.acquistato" name="check"></mdi-icon>
+      </button>
+
+      <button type="button" class="btn btn-link text-decoration-none text-left text-dark flex-grow-1 p-0" @click="toggleExpand">
+        <span :class="{ 'text-strike text-muted': item.acquistato }">{{ item.nome }}</span>
+      </button>
+
+      <span class="badge badge-light ml-2">{{ item.quantita }} {{ item.unita }}</span>
+    </div>
+
+    <div class="card card-body p-2 mt-2" v-if="expanded">
+      <div class="form-row">
+        <div class="col-12 col-sm-6 form-group mb-2">
+          <label class="small text-muted mb-1">Nome</label>
+          <input type="text" class="form-control form-control-sm" v-model="item.nome">
+        </div>
+        <div class="col-4 col-sm-2 form-group mb-2">
+          <label class="small text-muted mb-1">Quantità</label>
+          <input type="number" min="0" step="0.1" class="form-control form-control-sm" v-model.number="item.quantita">
+        </div>
+        <div class="col-4 col-sm-2 form-group mb-2">
+          <label class="small text-muted mb-1">Unità</label>
+          <select class="form-control form-control-sm" v-model="item.unita">
+            <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
+          </select>
+        </div>
+        <div class="col-4 col-sm-2 form-group mb-2">
+          <label class="small text-muted mb-1">Categoria</label>
+          <select class="form-control form-control-sm" v-model="item.categoriaId">
+            <option :value="null">Senza categoria</option>
+            <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.nome }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-outline-secondary btn-sm mr-2" @click="toggleExpand">Chiudi</button>
+        <button type="button" class="btn btn-danger btn-sm" @click="remove"><mdi-icon name="trash-can-outline" class="mr-1"></mdi-icon>Elimina</button>
+      </div>
+    </div>
+  </li>
+</script>
+
+<!-- ===================== TEMPLATE: AUTOCOMPLETE ===================== -->
+<script type="text/x-template" id="autocomplete-input-template">
+  <div class="autocomplete-input position-relative">
+    <input
+      type="text"
+      class="form-control"
+      :placeholder="placeholder"
+      v-model="query"
+      autocomplete="off"
+      @focus="open = true"
+      @blur="open = false"
+      @keyup.enter="onEnter"
+      @keyup.esc="open = false">
+    <div class="list-group autocomplete-dropdown shadow-sm" v-if="open && (suggestions.length || showCreateOption)">
+      <button
+        type="button"
+        class="list-group-item list-group-item-action py-1 px-2"
+        v-for="item in suggestions"
+        :key="item.id"
+        @mousedown.prevent="selectItem(item)">
+        {{ item.nome }}
+      </button>
+      <button
+        type="button"
+        class="list-group-item list-group-item-action py-1 px-2 text-primary"
+        v-if="showCreateOption"
+        @mousedown.prevent="createNew">
+        <mdi-icon name="plus" :size="14" class="mr-1"></mdi-icon>Crea nuovo: "{{ query.replace(/^\s+|\s+$/g,'') }}"
+      </button>
+    </div>
+  </div>
+</script>
+
+<!-- ===================== TEMPLATE: RIGA GIORNO (Piano alimentare) ===================== -->
+<script type="text/x-template" id="day-row-template">
+  <div class="card mb-2" :class="{ 'border-primary': isToday }">
+    <div class="card-header d-flex justify-content-between align-items-center py-1 px-2" :class="isToday ? 'bg-primary text-white' : 'bg-light'">
+      <span class="small font-weight-bold">{{ giornoNome }} {{ giornoData }}</span>
+      <span>
+        <button type="button" class="btn btn-sm py-0 px-1" :class="isToday ? 'btn-outline-light' : 'btn-outline-secondary'" @click="$emit('copy-day')" aria-label="Copia giorno">
+          <mdi-icon name="content-copy" :size="14"></mdi-icon>
+        </button>
+        <button type="button" class="btn btn-sm py-0 px-1 ml-1" :class="isToday ? 'btn-outline-light' : 'btn-outline-secondary'" v-if="canPasteDay" @click="$emit('paste-day')" aria-label="Incolla giorno">
+          <mdi-icon name="content-paste" :size="14"></mdi-icon>
+        </button>
+      </span>
+    </div>
+    <div class="card-body p-1">
+      <div class="row no-gutters">
+        <div class="col-4 px-1" v-for="pasto in pasti" :key="pasto.key">
+          <div class="p-1 rounded h-100" :class="pasto.bgClass">
+            <div class="small font-weight-bold text-truncate mb-1">{{ pasto.label }}</div>
+            <div class="d-flex flex-column">
+              <span class="badge badge-light d-flex justify-content-between align-items-center mb-1 text-truncate" v-for="rid in meals[pasto.key]" :key="rid">
+                <button type="button" class="btn btn-link btn-sm p-0 text-truncate text-dark mr-1" @click="$emit('edit-recipe', rid)" aria-label="Modifica ricetta">{{ nomeRicetta(rid) }}</button>
+                <button type="button" class="btn btn-sm btn-link text-danger p-0" @click="$emit('remove-recipe', { mealKey: pasto.key, ricettaId: rid })" aria-label="Rimuovi ricetta">
+                  <mdi-icon name="close" :size="12"></mdi-icon>
+                </button>
+              </span>
+              <button type="button" class="btn btn-sm btn-outline-secondary btn-block py-0" @click="$emit('add-recipe', pasto.key)" aria-label="Aggiungi ricetta">
+                <mdi-icon name="plus" :size="14"></mdi-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script src="js/vue.min.js?v=20260811a"></script>
+<script src="js/icons.js?v=20260811a"></script>
+<script src="js/data-model.js?v=20260811a"></script>
+<script src="js/components.js?v=20260811a"></script>
+<script src="js/feature-lista.js?v=20260811a"></script>
+<script src="js/feature-categorie.js?v=20260811a"></script>
+<script src="js/feature-prodotti.js?v=20260811a"></script>
+<script src="js/feature-ricette.js?v=20260811a"></script>
+<script src="js/feature-piano.js?v=20260811a"></script>
+<script src="js/app.js?v=20260811a"></script>
+</body>
+</html>
