@@ -97,6 +97,33 @@
     }
   });
 
+  // ---------- riga prodotto (accordion Prodotti, vista Lista) ----------
+  // Stesso pattern di item-row (click sul nome per espandere/modificare),
+  // ma senza quantita' (i prodotti non ne hanno) e con un bottone "+" al
+  // posto della checkbox, per aggiungere il prodotto alla lista.
+  Vue.component("prodotto-row", {
+    template: "#prodotto-row-template",
+    props: {
+      prodotto: { type: Object, required: true },
+      units: { type: Array, required: true },
+      categories: { type: Array, required: true }
+    },
+    data: function () {
+      return { expanded: false };
+    },
+    methods: {
+      toggleExpand: function () {
+        this.expanded = !this.expanded;
+      },
+      add: function () {
+        this.$emit("add", this.prodotto);
+      },
+      remove: function () {
+        this.$emit("remove", this.prodotto);
+      }
+    }
+  });
+
   // ---------- riga giorno (vista Piano alimentare) ----------
   Vue.component("day-row", {
     template: "#day-row-template",

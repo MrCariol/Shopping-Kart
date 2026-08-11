@@ -15,7 +15,7 @@
         newItemNome: "",
         newItemQuantita: 1,
         newItemUnita: "pz",
-        storicoAperto: false
+        prodottiAperto: false
       };
     },
 
@@ -81,20 +81,17 @@
         }).length;
       },
 
-      // "storico" = prodotti del catalogo gia' acquistati almeno una volta
-      // (campo ultimoAcquisto valorizzato), i piu' recenti per primi. Non
-      // e' un array separato: e' una vista filtrata/ordinata su `prodotti`
-      // (di proprieta' di FeatureProdotti), che non ha mai quantita' -
-      // coerente col fatto che lo storico non ne ha bisogno.
-      prodottiStorico: function () {
-        return this.prodotti
-          .filter(function (p) {
-            return !!p.ultimoAcquisto;
-          })
-          .slice()
-          .sort(function (a, b) {
-            return new Date(b.ultimoAcquisto) - new Date(a.ultimoAcquisto);
-          });
+      // prodotti non ancora presenti nella lista (per nome, senza
+      // distinzione di maiuscole/spazi): non ha senso riproporli
+      // nell'accordion se sono gia' nella lista attiva
+      prodottiDaAggiungere: function () {
+        var nomiInLista = this.lista.map(function (it) {
+          return it.nome.replace(/^\s+|\s+$/g, "").toLowerCase();
+        });
+        return this.prodotti.filter(function (p) {
+          var nome = p.nome.replace(/^\s+|\s+$/g, "").toLowerCase();
+          return nomiInLista.indexOf(nome) === -1;
+        });
       }
     },
 
@@ -161,7 +158,7 @@
         this.showToast("Storico aggiornato");
       },
 
-      riaggiungiDaStorico: function (prodotto) {
+      aggiungiProdottoALista: function (prodotto) {
         this.lista.push({
           id: DataModel.uid("item"),
           nome: prodotto.nome,

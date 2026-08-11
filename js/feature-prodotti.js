@@ -108,9 +108,9 @@
 
       // registra un articolo della lista come "gia' acquistato": aggiorna
       // il prodotto corrispondente (o lo crea, se non esiste ancora nel
-      // catalogo) cosi' da poterlo ritrovare nello storico della vista
-      // Lista (FeatureLista.prodottiStorico), senza duplicare i dati in
-      // un array separato
+      // catalogo), tenendo traccia di quando e' stato comprato l'ultima
+      // volta (ultimoAcquisto) - usato altrove solo a scopo informativo,
+      // il catalogo prodotti resta unico indipendentemente da questo campo
       archiviaAcquisto: function (item) {
         var nomeNorm = item.nome.replace(/^\s+|\s+$/g, "").toLowerCase();
         var esistente = null;

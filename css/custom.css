@@ -181,3 +181,27 @@ html.theme-dark .table-bordered td,
 html.theme-dark .table-bordered th {
   border-color: #3a3f44;
 }
+
+/*
+  Le 3 colonne pasto (Colazione/Pranzo/Cena) riusano alert-warning/success/
+  info di Bootstrap: pastelli chiari pensati per un fondo chiaro, troppo
+  luminosi sul tema scuro. Qui sotto varianti scure della stessa terna di
+  colori (ambra/verde/ciano), sempre distinguibili tra loro.
+*/
+html.theme-dark .alert-warning {
+  background-color: #4d3a12;
+  border-color: #6b5219;
+  color: #ffe1a6;
+}
+
+html.theme-dark .alert-success {
+  background-color: #1e3a24;
+  border-color: #2c5334;
+  color: #a8e6b5;
+}
+
+html.theme-dark .alert-info {
+  background-color: #103a42;
+  border-color: #185763;
+  color: #a8dee6;
+}

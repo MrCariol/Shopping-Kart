@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260811a" in fondo a css/js/manifest/icone.
+  locale: "?v=20260811d" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260811a" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20260811d" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260811a">
+<link rel="manifest" href="manifest.json?v=20260811d">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Spesa">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260811a">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260811d">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260811a">
+<meta name="msapplication-config" content="browserconfig.xml?v=20260811d">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260811a">
+<link rel="icon" href="icons/icon-192.png?v=20260811d">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260811a">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260811d">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260811a">
+<link rel="stylesheet" href="css/custom.css?v=20260811d">
 </head>
 <body>
 
@@ -53,7 +53,7 @@
   </nav>
 
   <!-- ===================== NAVIGAZIONE VISTE (SPA) ===================== -->
-  <ul class="nav nav-pills nav-fill bg-light border-bottom py-1">
+  <ul class="nav nav-pills nav-fill bg-light border-bottom py-1 px-3">
     <li class="nav-item">
       <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'lista' }" @click.prevent="setView('lista')" aria-label="Lista della spesa">
         <mdi-icon name="cart-outline" :size="24"></mdi-icon>
@@ -62,21 +62,6 @@
     <li class="nav-item">
       <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'piano' }" @click.prevent="setView('piano')" aria-label="Piano alimentare">
         <mdi-icon name="calendar-week" :size="24"></mdi-icon>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'categorie-lista' }" @click.prevent="setView('categorie-lista')" aria-label="Categorie lista della spesa e prodotti">
-        <mdi-icon name="tag-multiple-outline" :size="24"></mdi-icon>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'categorie-ricette' }" @click.prevent="setView('categorie-ricette')" aria-label="Categorie ricette">
-        <mdi-icon name="palette-outline" :size="24"></mdi-icon>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'prodotti' }" @click.prevent="setView('prodotti')" aria-label="Prodotti">
-        <mdi-icon name="food-apple-outline" :size="24"></mdi-icon>
       </a>
     </li>
     <li class="nav-item">
@@ -102,6 +87,9 @@
           <option value="alpha-desc">Ordina: Z → A</option>
         </select>
         <span>
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-2" @click="setView('categorie-lista')" aria-label="Categorie">
+            <mdi-icon name="tag-multiple-outline" :size="16"></mdi-icon>
+          </button>
           <button type="button" class="btn btn-outline-secondary btn-sm mr-2" v-if="doneCount > 0" @click="svuotaAcquistati">Svuota presi</button>
           <span class="badge badge-secondary">{{ doneCount }} / {{ totalCount }} presi</span>
         </span>
@@ -147,21 +135,51 @@
         </ul>
       </template>
 
-      <!-- storico: prodotti gia' acquistati in passato, per riaggiungerli rapidamente -->
-      <div class="mt-4 pt-3 border-top" v-if="prodottiStorico.length > 0">
-        <button type="button" class="btn btn-link btn-block d-flex justify-content-between align-items-center text-decoration-none px-0" @click="storicoAperto = !storicoAperto">
-          <span class="text-dark">Già acquistati in passato ({{ prodottiStorico.length }})</span>
-          <mdi-icon :name="storicoAperto ? 'chevron-up' : 'chevron-down'" :size="18"></mdi-icon>
+      <!-- prodotti: catalogo non ancora nella lista, per aggiungerli rapidamente -->
+      <div class="mt-4 pt-3 border-top">
+        <button type="button" class="btn btn-link btn-block d-flex justify-content-between align-items-center text-decoration-none px-0" @click="prodottiAperto = !prodottiAperto">
+          <span class="text-dark">Prodotti ({{ prodottiDaAggiungere.length }})</span>
+          <mdi-icon :name="prodottiAperto ? 'chevron-up' : 'chevron-down'" :size="18"></mdi-icon>
         </button>
-        <div class="d-flex flex-wrap mt-2" v-if="storicoAperto">
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm mr-2 mb-2"
-            v-for="p in prodottiStorico"
-            :key="p.id"
-            @click="riaggiungiDaStorico(p)">
-            <mdi-icon name="plus" :size="12" class="mr-1"></mdi-icon>{{ p.nome }}
-          </button>
+        <div class="mt-2" v-if="prodottiAperto">
+          <ul class="list-group list-group-flush mb-2">
+            <prodotto-row
+              v-for="p in prodottiDaAggiungere"
+              :key="p.id"
+              :prodotto="p"
+              :units="units"
+              :categories="categorie"
+              @add="aggiungiProdottoALista"
+              @remove="deleteProdotto">
+            </prodotto-row>
+            <li class="list-group-item text-muted small" v-if="prodotti.length === 0">
+              Nessun prodotto ancora creato: si creano anche al volo mentre componi una ricetta.
+            </li>
+            <li class="list-group-item text-muted small" v-else-if="prodottiDaAggiungere.length === 0">
+              Tutti i prodotti sono già nella lista.
+            </li>
+          </ul>
+          <div class="form-row no-gutters">
+            <div class="col-5 pr-1">
+              <input type="text" class="form-control" v-model="newProdottoNome" placeholder="Nuovo prodotto…" @keyup.enter="addProdotto">
+            </div>
+            <div class="col-3 pr-1">
+              <select class="form-control" v-model="newProdottoUnita">
+                <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
+              </select>
+            </div>
+            <div class="col-3 pr-1">
+              <select class="form-control" v-model="newProdottoCategoriaId">
+                <option :value="null">Senza categoria</option>
+                <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
+              </select>
+            </div>
+            <div class="col-1">
+              <button type="button" class="btn btn-primary btn-block h-100 px-0" @click="addProdotto" aria-label="Aggiungi prodotto">
+                <mdi-icon name="plus"></mdi-icon>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -261,59 +279,14 @@
       </div>
     </template>
 
-    <!-- ===================== VISTA: PRODOTTI ===================== -->
-    <template v-else-if="view === 'prodotti'">
-      <h5 class="mb-3">Prodotti</h5>
-      <ul class="list-group mb-2">
-        <li class="list-group-item" v-for="p in prodotti" :key="p.id">
-          <div class="form-row align-items-center no-gutters">
-            <div class="col-5 pr-1">
-              <input type="text" class="form-control form-control-sm" v-model="p.nome">
-            </div>
-            <div class="col-3 pr-1">
-              <select class="form-control form-control-sm" v-model="p.unita">
-                <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-              </select>
-            </div>
-            <div class="col-3 pr-1">
-              <select class="form-control form-control-sm" v-model="p.categoriaId">
-                <option :value="null">Senza categoria</option>
-                <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
-              </select>
-            </div>
-            <div class="col-1">
-              <button type="button" class="btn btn-outline-danger btn-sm" @click="deleteProdotto(p)" aria-label="Elimina prodotto"><mdi-icon name="trash-can-outline" :size="16"></mdi-icon></button>
-            </div>
-          </div>
-        </li>
-        <li class="list-group-item text-muted small" v-if="prodotti.length === 0">
-          Nessun prodotto ancora creato: si creano anche al volo mentre componi una ricetta.
-        </li>
-      </ul>
-      <div class="form-row no-gutters">
-        <div class="col-5 pr-1">
-          <input type="text" class="form-control" v-model="newProdottoNome" placeholder="Nuovo prodotto…" @keyup.enter="addProdotto">
-        </div>
-        <div class="col-3 pr-1">
-          <select class="form-control" v-model="newProdottoUnita">
-            <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-          </select>
-        </div>
-        <div class="col-3 pr-1">
-          <select class="form-control" v-model="newProdottoCategoriaId">
-            <option :value="null">Senza categoria</option>
-            <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
-          </select>
-        </div>
-        <div class="col-1">
-          <button type="button" class="btn btn-primary btn-block h-100 px-0" @click="addProdotto" aria-label="Aggiungi prodotto"><mdi-icon name="plus"></mdi-icon></button>
-        </div>
-      </div>
-    </template>
-
     <!-- ===================== VISTA: RICETTE ===================== -->
     <template v-else-if="view === 'ricette'">
-      <h5 class="mb-3">Ricette</h5>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Ricette</h5>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="setView('categorie-ricette')" aria-label="Categorie ricette">
+          <mdi-icon name="palette-outline" :size="16"></mdi-icon>
+        </button>
+      </div>
       <ul class="list-group mb-2">
         <li class="list-group-item d-flex justify-content-between align-items-center" v-for="r in ricette" :key="r.id">
           <button type="button" class="btn btn-link text-left text-dark p-0 flex-grow-1 text-decoration-none" @click="apriEditorRicettaEsistente(r)">
@@ -593,7 +566,7 @@
 
 <!-- ===================== TEMPLATE: RIGA ARTICOLO (Lista della spesa) ===================== -->
 <script type="text/x-template" id="item-row-template">
-  <li class="list-group-item px-0">
+  <li class="list-group-item px-2">
     <div class="d-flex align-items-center">
       <button
         type="button"
@@ -631,6 +604,54 @@
         <div class="col-4 col-sm-2 form-group mb-2">
           <label class="small text-muted mb-1">Categoria</label>
           <select class="form-control form-control-sm" v-model="item.categoriaId">
+            <option :value="null">Senza categoria</option>
+            <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.nome }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-outline-secondary btn-sm mr-2" @click="toggleExpand">Chiudi</button>
+        <button type="button" class="btn btn-danger btn-sm" @click="remove"><mdi-icon name="trash-can-outline" class="mr-1"></mdi-icon>Elimina</button>
+      </div>
+    </div>
+  </li>
+</script>
+
+<!-- ===================== TEMPLATE: RIGA PRODOTTO (accordion Prodotti, vista Lista) ===================== -->
+<script type="text/x-template" id="prodotto-row-template">
+  <li class="list-group-item px-2">
+    <div class="d-flex align-items-center">
+      <button
+        type="button"
+        class="btn btn-outline-primary btn-sm mr-2"
+        style="min-width: 2.6rem; min-height: 2.6rem;"
+        @click="add"
+        aria-label="Aggiungi alla lista">
+        <mdi-icon name="plus"></mdi-icon>
+      </button>
+
+      <button type="button" class="btn btn-link text-decoration-none text-left text-dark flex-grow-1 p-0" @click="toggleExpand">
+        {{ prodotto.nome }}
+      </button>
+
+      <span class="badge badge-light ml-2">{{ prodotto.unita }}</span>
+    </div>
+
+    <div class="card card-body p-2 mt-2" v-if="expanded">
+      <div class="form-row">
+        <div class="col-12 col-sm-6 form-group mb-2">
+          <label class="small text-muted mb-1">Nome</label>
+          <input type="text" class="form-control form-control-sm" v-model="prodotto.nome">
+        </div>
+        <div class="col-6 col-sm-3 form-group mb-2">
+          <label class="small text-muted mb-1">Unità</label>
+          <select class="form-control form-control-sm" v-model="prodotto.unita">
+            <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
+          </select>
+        </div>
+        <div class="col-6 col-sm-3 form-group mb-2">
+          <label class="small text-muted mb-1">Categoria</label>
+          <select class="form-control form-control-sm" v-model="prodotto.categoriaId">
             <option :value="null">Senza categoria</option>
             <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.nome }}</option>
           </select>
@@ -714,15 +735,15 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260811a"></script>
-<script src="js/icons.js?v=20260811a"></script>
-<script src="js/data-model.js?v=20260811a"></script>
-<script src="js/components.js?v=20260811a"></script>
-<script src="js/feature-lista.js?v=20260811a"></script>
-<script src="js/feature-categorie.js?v=20260811a"></script>
-<script src="js/feature-prodotti.js?v=20260811a"></script>
-<script src="js/feature-ricette.js?v=20260811a"></script>
-<script src="js/feature-piano.js?v=20260811a"></script>
-<script src="js/app.js?v=20260811a"></script>
+<script src="js/vue.min.js?v=20260811d"></script>
+<script src="js/icons.js?v=20260811d"></script>
+<script src="js/data-model.js?v=20260811d"></script>
+<script src="js/components.js?v=20260811d"></script>
+<script src="js/feature-lista.js?v=20260811d"></script>
+<script src="js/feature-categorie.js?v=20260811d"></script>
+<script src="js/feature-prodotti.js?v=20260811d"></script>
+<script src="js/feature-ricette.js?v=20260811d"></script>
+<script src="js/feature-piano.js?v=20260811d"></script>
+<script src="js/app.js?v=20260811d"></script>
 </body>
 </html>
