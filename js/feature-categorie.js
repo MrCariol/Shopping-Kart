@@ -23,6 +23,27 @@
       };
     },
 
+    computed: {
+      // categorie ricetta in ordine alfabetico, con "Altro" sempre in
+      // fondo (a differenza delle categorie corsia, non hanno un ordine
+      // custom significativo: non rappresentano un percorso fisico)
+      categorieRicetteOrdinate: function () {
+        var altro = [];
+        var altri = [];
+        this.categorieRicette.forEach(function (c) {
+          if (c.nome.replace(/^\s+|\s+$/g, "").toLowerCase() === "altro") {
+            altro.push(c);
+          } else {
+            altri.push(c);
+          }
+        });
+        altri.sort(function (a, b) {
+          return DataModel.compareNomi(a.nome, b.nome);
+        });
+        return altri.concat(altro);
+      }
+    },
+
     methods: {
       categoriaRicettaById: function (id) {
         var found = null;
@@ -30,6 +51,19 @@
           if (c.id === id) found = c;
         });
         return found;
+      },
+
+      // sottoinsieme di categorieRicetteOrdinate i cui id compaiono in
+      // `ids`, nello stesso ordine (alfabetico, Altro ultimo) - usato per
+      // mostrare i badge categoria di una ricetta in ordine coerente
+      categorieIdsOrdinati: function (ids) {
+        return this.categorieRicetteOrdinate
+          .map(function (c) {
+            return c.id;
+          })
+          .filter(function (id) {
+            return ids.indexOf(id) !== -1;
+          });
       },
 
       // ---------- categorie corsie (lista della spesa / prodotti) ----------
@@ -100,22 +134,6 @@
         this.newCategoriaRicettaColore = DataModel.SWATCH_COLORS[0];
       },
 
-      moveCategoriaRicettaUp: function (index) {
-        if (index <= 0) return;
-        var arr = this.categorieRicette;
-        var tmp = arr[index - 1];
-        arr.splice(index - 1, 1, arr[index]);
-        arr.splice(index, 1, tmp);
-      },
-
-      moveCategoriaRicettaDown: function (index) {
-        if (index >= this.categorieRicette.length - 1) return;
-        var arr = this.categorieRicette;
-        var tmp = arr[index + 1];
-        arr.splice(index + 1, 1, arr[index]);
-        arr.splice(index, 1, tmp);
-      },
-
       deleteCategoriaRicetta: function (cat) {
         var count = this.ricette.filter(function (r) {
           return r.categorieIds.indexOf(cat.id) !== -1;
@@ -136,8 +154,8 @@
         if (idx !== -1) this.categorieRicette.splice(idx, 1);
 
         // ricette rimaste senza nessuna categoria: fallback sulla prima
-        // categoria ricetta ancora disponibile (se esiste)
-        var remaining = this.categorieRicette;
+        // categoria ricetta ancora disponibile (in ordine alfabetico)
+        var remaining = this.categorieRicetteOrdinate;
         this.ricette.forEach(function (r) {
           var pos = r.categorieIds.indexOf(cat.id);
           if (pos !== -1) r.categorieIds.splice(pos, 1);

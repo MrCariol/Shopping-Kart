@@ -24,9 +24,17 @@
         // creazione al volo di un prodotto dentro una riga ingrediente
         ingredienteInCreazione: null, // indice della riga, o null
         nuovoProdottoNomeInline: "",
-        nuovoProdottoUnitaInline: "pz",
+        nuovoProdottoUnitaInline: "",
         nuovoProdottoCategoriaInline: null
       };
+    },
+
+    computed: {
+      ricetteOrdinate: function () {
+        return this.ricette.slice().sort(function (a, b) {
+          return DataModel.compareNomi(a.nome, b.nome);
+        });
+      }
     },
 
     methods: {
@@ -105,7 +113,7 @@
       avviaCreazioneProdottoInline: function (index, nomeIniziale) {
         this.ingredienteInCreazione = index;
         this.nuovoProdottoNomeInline = nomeIniziale || "";
-        this.nuovoProdottoUnitaInline = "pz";
+        this.nuovoProdottoUnitaInline = "";
         this.nuovoProdottoCategoriaInline = null;
       },
 

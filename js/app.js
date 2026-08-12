@@ -62,6 +62,17 @@
 
   var rootComputed = {};
   mergeUnique(rootComputed, FeatureLista.computed, "FeatureLista.computed");
+  mergeUnique(
+    rootComputed,
+    FeatureCategorie.computed,
+    "FeatureCategorie.computed"
+  );
+  mergeUnique(
+    rootComputed,
+    FeatureProdotti.computed,
+    "FeatureProdotti.computed"
+  );
+  mergeUnique(rootComputed, FeatureRicette.computed, "FeatureRicette.computed");
   mergeUnique(rootComputed, FeaturePiano.computed, "FeaturePiano.computed");
 
   var rootMethods = {

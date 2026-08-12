@@ -14,7 +14,7 @@
         sortMode: "categoria", // 'categoria' | 'alpha-asc' | 'alpha-desc'
         newItemNome: "",
         newItemQuantita: 1,
-        newItemUnita: "pz",
+        newItemUnita: "",
         prodottiAperto: false
       };
     },
@@ -88,9 +88,44 @@
         var nomiInLista = this.lista.map(function (it) {
           return it.nome.replace(/^\s+|\s+$/g, "").toLowerCase();
         });
-        return this.prodotti.filter(function (p) {
+        return this.prodottiOrdinati.filter(function (p) {
           var nome = p.nome.replace(/^\s+|\s+$/g, "").toLowerCase();
           return nomiInLista.indexOf(nome) === -1;
+        });
+      },
+
+      // stesso raggruppamento per categoria di groupedByCategory/
+      // visibleGroups, ma su prodottiDaAggiungere invece che su lista:
+      // usato nell'accordion Prodotti quando sortMode === 'categoria',
+      // per rispecchiare l'organizzazione della lista sopra. Le sezioni
+      // vuote sono gia' escluse (a differenza di groupedByCategory, qui
+      // non serve un passaggio visibleGroups separato).
+      prodottiDaAggiungereRaggruppati: function () {
+        var self = this;
+        var groups = [];
+
+        var senza = this.prodottiDaAggiungere.filter(function (p) {
+          return !p.categoriaId;
+        });
+        groups.push({
+          id: null,
+          nome: this.senzaCategoriaLabel,
+          items: senza
+        });
+
+        this.categorie.forEach(function (cat) {
+          var items = self.prodottiDaAggiungere.filter(function (p) {
+            return p.categoriaId === cat.id;
+          });
+          groups.push({
+            id: cat.id,
+            nome: cat.nome,
+            items: items
+          });
+        });
+
+        return groups.filter(function (g) {
+          return g.items.length > 0;
         });
       }
     },
@@ -107,7 +142,7 @@
           id: DataModel.uid("item"),
           nome: nome,
           quantita: qty,
-          unita: this.newItemUnita || "pz",
+          unita: this.newItemUnita || "",
           categoriaId: null,
           acquistato: false,
           dataAggiunta: new Date().toISOString()
@@ -158,11 +193,14 @@
         this.showToast("Storico aggiornato");
       },
 
+      // niente quantita' di default: aggiunto dal catalogo prodotti, non
+      // dal form manuale, quindi si presume "da comprare" senza una
+      // quantita' precisa finche' l'utente non la imposta a mano
       aggiungiProdottoALista: function (prodotto) {
         this.lista.push({
           id: DataModel.uid("item"),
           nome: prodotto.nome,
-          quantita: 1,
+          quantita: null,
           unita: prodotto.unita,
           categoriaId: prodotto.categoriaId,
           acquistato: false,

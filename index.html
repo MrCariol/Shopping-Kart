@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260811d" in fondo a css/js/manifest/icone.
+  locale: "?v=20260812e" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260811d" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20260812e" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260811d">
+<link rel="manifest" href="manifest.json?v=20260812e">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Spesa">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260811d">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260812e">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260811d">
+<meta name="msapplication-config" content="browserconfig.xml?v=20260812e">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260811d">
+<link rel="icon" href="icons/icon-192.png?v=20260812e">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260811d">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260812e">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260811d">
+<link rel="stylesheet" href="css/custom.css?v=20260812e">
 </head>
 <body>
 
@@ -136,13 +136,38 @@
       </template>
 
       <!-- prodotti: catalogo non ancora nella lista, per aggiungerli rapidamente -->
-      <div class="mt-4 pt-3 border-top">
+      <div class="mt-5 pt-3 border-top">
         <button type="button" class="btn btn-link btn-block d-flex justify-content-between align-items-center text-decoration-none px-0" @click="prodottiAperto = !prodottiAperto">
           <span class="text-dark">Prodotti ({{ prodottiDaAggiungere.length }})</span>
           <mdi-icon :name="prodottiAperto ? 'chevron-up' : 'chevron-down'" :size="18"></mdi-icon>
         </button>
         <div class="mt-2" v-if="prodottiAperto">
-          <ul class="list-group list-group-flush mb-2">
+          <p class="text-muted small" v-if="prodotti.length === 0">
+            Nessun prodotto ancora creato: si creano anche al volo mentre componi una ricetta.
+          </p>
+          <p class="text-muted small" v-else-if="prodottiDaAggiungere.length === 0">
+            Tutti i prodotti sono già nella lista.
+          </p>
+          <template v-else-if="sortMode === 'categoria'">
+            <div class="mb-3" v-for="group in prodottiDaAggiungereRaggruppati" :key="group.id || 'senza-categoria'">
+              <div class="d-flex justify-content-between align-items-center text-uppercase text-muted small border-bottom pb-1 mb-1">
+                <span>{{ group.nome }}</span>
+                <span class="badge badge-secondary">{{ group.items.length }}</span>
+              </div>
+              <ul class="list-group list-group-flush">
+                <prodotto-row
+                  v-for="p in group.items"
+                  :key="p.id"
+                  :prodotto="p"
+                  :units="units"
+                  :categories="categorie"
+                  @add="aggiungiProdottoALista"
+                  @remove="deleteProdotto">
+                </prodotto-row>
+              </ul>
+            </div>
+          </template>
+          <ul class="list-group list-group-flush" v-else>
             <prodotto-row
               v-for="p in prodottiDaAggiungere"
               :key="p.id"
@@ -152,34 +177,7 @@
               @add="aggiungiProdottoALista"
               @remove="deleteProdotto">
             </prodotto-row>
-            <li class="list-group-item text-muted small" v-if="prodotti.length === 0">
-              Nessun prodotto ancora creato: si creano anche al volo mentre componi una ricetta.
-            </li>
-            <li class="list-group-item text-muted small" v-else-if="prodottiDaAggiungere.length === 0">
-              Tutti i prodotti sono già nella lista.
-            </li>
           </ul>
-          <div class="form-row no-gutters">
-            <div class="col-5 pr-1">
-              <input type="text" class="form-control" v-model="newProdottoNome" placeholder="Nuovo prodotto…" @keyup.enter="addProdotto">
-            </div>
-            <div class="col-3 pr-1">
-              <select class="form-control" v-model="newProdottoUnita">
-                <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-              </select>
-            </div>
-            <div class="col-3 pr-1">
-              <select class="form-control" v-model="newProdottoCategoriaId">
-                <option :value="null">Senza categoria</option>
-                <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
-              </select>
-            </div>
-            <div class="col-1">
-              <button type="button" class="btn btn-primary btn-block h-100 px-0" @click="addProdotto" aria-label="Aggiungi prodotto">
-                <mdi-icon name="plus"></mdi-icon>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </template>
@@ -256,11 +254,9 @@
     <template v-else-if="view === 'categorie-ricette'">
       <h5 class="mb-3">Categorie ricette</h5>
       <ul class="list-group mb-2">
-        <li class="list-group-item" v-for="(cat, index) in categorieRicette" :key="cat.id">
+        <li class="list-group-item" v-for="cat in categorieRicetteOrdinate" :key="cat.id">
           <div class="d-flex align-items-center mb-1">
             <input type="text" class="form-control form-control-sm mr-1" v-model="cat.nome">
-            <button type="button" class="btn btn-outline-secondary btn-sm mr-1" :disabled="index === 0" @click="moveCategoriaRicettaUp(index)" aria-label="Sposta su"><mdi-icon name="chevron-up"></mdi-icon></button>
-            <button type="button" class="btn btn-outline-secondary btn-sm mr-1" :disabled="index === categorieRicette.length - 1" @click="moveCategoriaRicettaDown(index)" aria-label="Sposta giù"><mdi-icon name="chevron-down"></mdi-icon></button>
             <button type="button" class="btn btn-outline-danger btn-sm" @click="deleteCategoriaRicetta(cat)" aria-label="Elimina categoria ricetta"><mdi-icon name="trash-can-outline"></mdi-icon></button>
           </div>
           <div class="d-flex align-items-center flex-wrap">
@@ -288,13 +284,13 @@
         </button>
       </div>
       <ul class="list-group mb-2">
-        <li class="list-group-item d-flex justify-content-between align-items-center" v-for="r in ricette" :key="r.id">
+        <li class="list-group-item d-flex justify-content-between align-items-center" v-for="r in ricetteOrdinate" :key="r.id">
           <button type="button" class="btn btn-link text-left text-dark p-0 flex-grow-1 text-decoration-none" @click="apriEditorRicettaEsistente(r)">
             <div>{{ r.nome }}</div>
             <div>
               <span
                 class="badge mr-1"
-                v-for="cid in r.categorieIds"
+                v-for="cid in categorieIdsOrdinati(r.categorieIds)"
                 :key="cid"
                 :style="{ backgroundColor: (categoriaRicettaById(cid) || {}).colore || '#6c757d', color: '#fff' }">
                 {{ (categoriaRicettaById(cid) || {}).nome || '—' }}
@@ -346,7 +342,7 @@
   <!-- ===================== BARRA AGGIUNTA ARTICOLO (solo vista Lista) ===================== -->
   <form v-if="view === 'lista'" class="fixed-bottom bg-white border-top p-2" @submit.prevent="addItem">
     <div class="form-row no-gutters">
-      <div class="col-6 pr-1">
+      <div class="col-7 pr-1">
         <input
           type="text"
           id="new-item-input"
@@ -364,8 +360,8 @@
           v-model.number="newItemQuantita"
           aria-label="Quantità">
       </div>
-      <div class="col-3 pr-1">
-        <select class="custom-select" v-model="newItemUnita" aria-label="Unità di misura">
+      <div class="col-2 pr-1">
+        <select class="custom-select unit-select" v-model="newItemUnita" aria-label="Unità di misura">
           <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
         </select>
       </div>
@@ -399,7 +395,7 @@
           </div>
           <div class="modal-body">
             <autocomplete-input
-              :items="ricette"
+              :items="ricetteOrdinate"
               placeholder="Cerca o crea una ricetta…"
               @select="selezionaRicettaPerCella"
               @create="creaRicettaPerCella">
@@ -436,7 +432,7 @@
               <button
                 type="button"
                 class="btn btn-sm mr-1 mb-1"
-                v-for="cat in categorieRicette"
+                v-for="cat in categorieRicetteOrdinate"
                 :key="cat.id"
                 :style="ricettaDraft.categorieIds.indexOf(cat.id) !== -1
                   ? { backgroundColor: cat.colore, color: '#fff', borderColor: cat.colore }
@@ -460,7 +456,7 @@
 
                 <autocomplete-input
                   v-else-if="ingredienteInCreazione !== index"
-                  :items="prodotti"
+                  :items="prodottiOrdinati"
                   placeholder="Cerca o crea un prodotto…"
                   @select="selezionaProdottoIngrediente(index, $event)"
                   @create="avviaCreazioneProdottoInline(index, $event)">
@@ -470,12 +466,12 @@
                   <div class="small text-muted mb-1">Nuovo prodotto</div>
                   <input type="text" class="form-control form-control-sm mb-1" v-model="nuovoProdottoNomeInline" placeholder="Nome prodotto">
                   <div class="form-row no-gutters mb-1">
-                    <div class="col-6 pr-1">
-                      <select class="form-control form-control-sm" v-model="nuovoProdottoUnitaInline">
+                    <div class="col-4 pr-1">
+                      <select class="form-control form-control-sm unit-select" v-model="nuovoProdottoUnitaInline">
                         <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
                       </select>
                     </div>
-                    <div class="col-6">
+                    <div class="col-8">
                       <select class="form-control form-control-sm" v-model="nuovoProdottoCategoriaInline">
                         <option :value="null">Senza categoria</option>
                         <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
@@ -578,11 +574,14 @@
         <mdi-icon v-if="item.acquistato" name="check"></mdi-icon>
       </button>
 
-      <button type="button" class="btn btn-link text-decoration-none text-left text-dark flex-grow-1 p-0" @click="toggleExpand">
+      <button type="button" class="btn btn-link text-decoration-none text-left text-dark p-0" @click="toggleExpand">
         <span :class="{ 'text-strike text-muted': item.acquistato }">{{ item.nome }}</span>
+        <span class="badge badge-light ml-2" v-if="item.quantita">{{ item.quantita }} {{ item.unita }}</span>
       </button>
 
-      <span class="badge badge-light ml-2">{{ item.quantita }} {{ item.unita }}</span>
+      <button type="button" class="btn btn-link btn-sm text-danger p-0 ml-auto" @click="remove" aria-label="Togli dalla lista">
+        <mdi-icon name="close" :size="18"></mdi-icon>
+      </button>
     </div>
 
     <div class="card card-body p-2 mt-2" v-if="expanded">
@@ -591,17 +590,17 @@
           <label class="small text-muted mb-1">Nome</label>
           <input type="text" class="form-control form-control-sm" v-model="item.nome">
         </div>
-        <div class="col-4 col-sm-2 form-group mb-2">
+        <div class="col-3 col-sm-2 form-group mb-2">
           <label class="small text-muted mb-1">Quantità</label>
           <input type="number" min="0" step="0.1" class="form-control form-control-sm" v-model.number="item.quantita">
         </div>
-        <div class="col-4 col-sm-2 form-group mb-2">
+        <div class="col-3 col-sm-1 form-group mb-2">
           <label class="small text-muted mb-1">Unità</label>
-          <select class="form-control form-control-sm" v-model="item.unita">
+          <select class="form-control form-control-sm unit-select" v-model="item.unita">
             <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
           </select>
         </div>
-        <div class="col-4 col-sm-2 form-group mb-2">
+        <div class="col-6 col-sm-3 form-group mb-2">
           <label class="small text-muted mb-1">Categoria</label>
           <select class="form-control form-control-sm" v-model="item.categoriaId">
             <option :value="null">Senza categoria</option>
@@ -633,8 +632,6 @@
       <button type="button" class="btn btn-link text-decoration-none text-left text-dark flex-grow-1 p-0" @click="toggleExpand">
         {{ prodotto.nome }}
       </button>
-
-      <span class="badge badge-light ml-2">{{ prodotto.unita }}</span>
     </div>
 
     <div class="card card-body p-2 mt-2" v-if="expanded">
@@ -643,13 +640,13 @@
           <label class="small text-muted mb-1">Nome</label>
           <input type="text" class="form-control form-control-sm" v-model="prodotto.nome">
         </div>
-        <div class="col-6 col-sm-3 form-group mb-2">
+        <div class="col-4 col-sm-2 form-group mb-2">
           <label class="small text-muted mb-1">Unità</label>
-          <select class="form-control form-control-sm" v-model="prodotto.unita">
+          <select class="form-control form-control-sm unit-select" v-model="prodotto.unita">
             <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
           </select>
         </div>
-        <div class="col-6 col-sm-3 form-group mb-2">
+        <div class="col-8 col-sm-4 form-group mb-2">
           <label class="small text-muted mb-1">Categoria</label>
           <select class="form-control form-control-sm" v-model="prodotto.categoriaId">
             <option :value="null">Senza categoria</option>
@@ -735,15 +732,15 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260811d"></script>
-<script src="js/icons.js?v=20260811d"></script>
-<script src="js/data-model.js?v=20260811d"></script>
-<script src="js/components.js?v=20260811d"></script>
-<script src="js/feature-lista.js?v=20260811d"></script>
-<script src="js/feature-categorie.js?v=20260811d"></script>
-<script src="js/feature-prodotti.js?v=20260811d"></script>
-<script src="js/feature-ricette.js?v=20260811d"></script>
-<script src="js/feature-piano.js?v=20260811d"></script>
-<script src="js/app.js?v=20260811d"></script>
+<script src="js/vue.min.js?v=20260812e"></script>
+<script src="js/icons.js?v=20260812e"></script>
+<script src="js/data-model.js?v=20260812e"></script>
+<script src="js/components.js?v=20260812e"></script>
+<script src="js/feature-lista.js?v=20260812e"></script>
+<script src="js/feature-categorie.js?v=20260812e"></script>
+<script src="js/feature-prodotti.js?v=20260812e"></script>
+<script src="js/feature-ricette.js?v=20260812e"></script>
+<script src="js/feature-piano.js?v=20260812e"></script>
+<script src="js/app.js?v=20260812e"></script>
 </body>
 </html>

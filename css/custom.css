@@ -18,6 +18,9 @@
                         autocomplete-input), niente plugin JS/Popper
   - .swatch-btn      -> pulsante colore circolare per la palette a swatch
                         delle categorie ricetta
+  - .unit-select     -> larghezza massima per le select unita' di misura
+                        (max 4 caratteri, inutile farle larghe quanto
+                        la colonna Bootstrap che le contiene)
 
   In fondo al file: blocco tema scuro (html.theme-dark), commentato a parte
   perche' e' un insieme di override piu' ampio, non una singola utility.
@@ -80,6 +83,16 @@
 
 .swatch-btn.selected {
   border-color: #343a40;
+}
+
+/*
+  .unit-select -> le unita' di misura sono al massimo 4 caratteri
+  ("conf"): le select di Bootstrap 4 si allargano per riempire la colonna
+  che le contiene, molto piu' del necessario. Nessuna utility Bootstrap
+  per limitare la larghezza di un singolo form-control.
+*/
+.unit-select {
+  max-width: 5.5rem;
 }
 
 /*

@@ -1,7 +1,11 @@
 /*
   La Spesa - catalogo prodotti
-  Usato dall'elenco prodotti in Impostazioni e dalla creazione "al volo"
-  di un prodotto non trovato dentro l'editor ricetta (FeatureRicette).
+  Il catalogo si popola da solo: creazione "al volo" di un prodotto non
+  trovato dentro l'editor ricetta (FeatureRicette), oppure archiviazione
+  automatica quando un articolo preso viene eliminato dalla lista
+  (archiviaAcquisto, chiamata da FeatureLista). Nessun form dedicato per
+  crearne uno manualmente: la barra di aggiunta articolo della vista Lista
+  e' gia' sufficiente per iniziare.
 */
 
 (function () {
@@ -10,40 +14,32 @@
   window.FeatureProdotti = {
     data: function () {
       return {
-        prodotti: [],
-        newProdottoNome: "",
-        newProdottoUnita: "pz",
-        newProdottoCategoriaId: null
+        prodotti: []
       };
     },
 
+    computed: {
+      prodottiOrdinati: function () {
+        return this.prodotti.slice().sort(function (a, b) {
+          return DataModel.compareNomi(a.nome, b.nome);
+        });
+      }
+    },
+
     methods: {
-      // usato sia dal form "aggiungi prodotto" di Impostazioni sia dalla
-      // creazione al volo dentro l'editor ricetta
+      // usato dalla creazione al volo di un prodotto dentro l'editor ricetta
       creaProdotto: function (nome, unita, categoriaId) {
         var trimmed = (nome || "").replace(/^\s+|\s+$/g, "");
         if (!trimmed) return null;
         var prodotto = {
           id: DataModel.uid("prod"),
           nome: trimmed,
-          unita: unita || "pz",
+          unita: unita || "",
           categoriaId: categoriaId || null,
           ultimoAcquisto: null
         };
         this.prodotti.push(prodotto);
         return prodotto;
-      },
-
-      addProdotto: function () {
-        var p = this.creaProdotto(
-          this.newProdottoNome,
-          this.newProdottoUnita,
-          this.newProdottoCategoriaId
-        );
-        if (!p) return;
-        this.newProdottoNome = "";
-        this.newProdottoUnita = "pz";
-        this.newProdottoCategoriaId = null;
       },
 
       deleteProdotto: function (prodotto) {

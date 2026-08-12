@@ -19,7 +19,7 @@
   // volutamente fuori dal blob v2 (non fa parte del backup/export)
   var STORAGE_KEY_TEMA = "shopping-kart-tema-v1";
 
-  var UNITS = ["pz", "kg", "g", "l", "ml", "conf"];
+  var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 
   // palette a swatch per le categorie ricetta - riusa gli stessi hex dei
   // contestuali Bootstrap 4 gia' presenti nell'app (badge/alert), per
