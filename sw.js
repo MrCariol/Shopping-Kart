@@ -11,7 +11,7 @@
 // schede; index.html ricarica la pagina una volta sola quando cio'
 // avviene, cosi' l'utente vede la versione nuova senza dover fare nulla.
 
-var CACHE_VERSION = '20260813c';
+var CACHE_VERSION = '20260813d';
 var CACHE_NAME = 'shopping-kart-' + CACHE_VERSION;
 
 var ASSETS = [

@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260813c" in fondo a css/js/manifest/icone.
+  locale: "?v=20260813d" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260813c" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20260813d" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260813c">
+<link rel="manifest" href="manifest.json?v=20260813d">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shopping Kart">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260813c">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260813d">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260813c">
+<meta name="msapplication-config" content="browserconfig.xml?v=20260813d">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260813c">
+<link rel="icon" href="icons/icon-192.png?v=20260813d">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260813c">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260813d">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260813c">
+<link rel="stylesheet" href="css/custom.css?v=20260813d">
 </head>
 <body>
 
@@ -788,18 +788,18 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260813c"></script>
+<script src="js/vue.min.js?v=20260813d"></script>
 <!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
-<script src="js/sortable.min.js?v=20260813c"></script>
-<script src="js/icons.js?v=20260813c"></script>
-<script src="js/data-model.js?v=20260813c"></script>
-<script src="js/components.js?v=20260813c"></script>
-<script src="js/feature-lista.js?v=20260813c"></script>
-<script src="js/feature-categorie.js?v=20260813c"></script>
-<script src="js/feature-prodotti.js?v=20260813c"></script>
-<script src="js/feature-ricette.js?v=20260813c"></script>
-<script src="js/feature-piano.js?v=20260813c"></script>
-<script src="js/app.js?v=20260813c"></script>
+<script src="js/sortable.min.js?v=20260813d"></script>
+<script src="js/icons.js?v=20260813d"></script>
+<script src="js/data-model.js?v=20260813d"></script>
+<script src="js/components.js?v=20260813d"></script>
+<script src="js/feature-lista.js?v=20260813d"></script>
+<script src="js/feature-categorie.js?v=20260813d"></script>
+<script src="js/feature-prodotti.js?v=20260813d"></script>
+<script src="js/feature-ricette.js?v=20260813d"></script>
+<script src="js/feature-piano.js?v=20260813d"></script>
+<script src="js/app.js?v=20260813d"></script>
 
 <!--
   Service Worker: rende l'app completamente offline anche a scheda/app

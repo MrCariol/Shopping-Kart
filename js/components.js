@@ -167,7 +167,12 @@
         this._sortable = new Sortable(this.$refs.lista, {
           group: "piano-ricette",
           draggable: ".piano-draggable",
-          filter: "button",
+          // solo i due bottoncini icona (duplica/rimuovi) restano fuori dal
+          // trascinamento: il bottone col nome ricetta (modifica) partecipa
+          // anche lui, cosi' tutto il badge e' "afferrabile" (altrimenti,
+          // su badge stretti, restava solo un bordo sottile da prendere) -
+          // un tap breve senza spostamento resta comunque un click normale.
+          filter: ".piano-badge-action",
           preventOnFilter: false,
           animation: 150,
           forceFallback: true,

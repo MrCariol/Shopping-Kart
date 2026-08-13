@@ -25,12 +25,12 @@ L'app è una Single Page Application (nessun reload di pagina tra una vista e l'
 
 I browser mobile (Edge sul Lumia compreso) tengono la cache molto a lungo. Il metodo usato qui è il classico **cache busting via query string di versione**, rinforzato dal Service Worker sui browser che lo supportano:
 
-1. Ogni file locale (`css/bootstrap.min.css`, `css/custom.css`, `js/vue.min.js`, tutti i `js/*.js` dell'app, `manifest.json`, le icone) viene richiamato con `?v=20260813c` in fondo all'URL, sia in `index.html` sia dentro `manifest.json`/`browserconfig.xml`.
-2. **Prima di ogni pubblicazione**: cerca `20260813c` in tutti i file del progetto — **incluso `sw.js`** (costante `CACHE_VERSION` in cima al file) — e sostituiscilo ovunque con un nuovo valore (es. la data del giorno + una lettera, `20260901a`). Cambiando l'URL, il telefono è costretto a scaricare una copia nuova del file anche se il nome resta identico; cambiando `CACHE_VERSION`, il Service Worker apre una cache nuova, scarica l'app shell aggiornata e butta via quella vecchia.
+1. Ogni file locale (`css/bootstrap.min.css`, `css/custom.css`, `js/vue.min.js`, tutti i `js/*.js` dell'app, `manifest.json`, le icone) viene richiamato con `?v=20260813d` in fondo all'URL, sia in `index.html` sia dentro `manifest.json`/`browserconfig.xml`.
+2. **Prima di ogni pubblicazione**: cerca `20260813d` in tutti i file del progetto — **incluso `sw.js`** (costante `CACHE_VERSION` in cima al file) — e sostituiscilo ovunque con un nuovo valore (es. la data del giorno + una lettera, `20260901a`). Cambiando l'URL, il telefono è costretto a scaricare una copia nuova del file anche se il nome resta identico; cambiando `CACHE_VERSION`, il Service Worker apre una cache nuova, scarica l'app shell aggiornata e butta via quella vecchia.
 3. Il file `index.html` stesso ha in testa dei meta tag `Cache-Control`/`Pragma`/`Expires` per scoraggiare la cache del documento HTML, e `.htaccess` imposta le stesse regole a livello di header HTTP vero e proprio (il meccanismo che conta davvero): HTML/manifest/config/`sw.js` **mai in cache**, mentre CSS/JS/PNG possono restare in cache a lungo proprio perché la versione cambia nell'URL quando serve.
 4. Sui browser con Service Worker: `sw.js` non viene mai servito dalla cache (vedi punto 3), quindi ogni apertura/ripresa dell'app lo ricontrolla (`registration.update()` su `visibilitychange`/`focus`, oltre al controllo automatico del browser). Appena una versione nuova ha finito di scaricare l'app shell, prende subito il controllo (`skipWaiting` + `clients.claim` in `sw.js`) e `index.html` ricarica la pagina una volta sola: l'utente vede la versione nuova senza dover fare nulla, senza restare bloccato su una versione vecchia in cache.
 
-Con un editor di testo, un "cerca e sostituisci" di `20260813c` su tutto il progetto (compreso `sw.js`) prima di ogni caricamento su Altervista è sufficiente.
+Con un editor di testo, un "cerca e sostituisci" di `20260813d` su tutto il progetto (compreso `sw.js`) prima di ogni caricamento su Altervista è sufficiente.
 
 ## Deploy
 

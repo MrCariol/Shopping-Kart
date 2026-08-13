@@ -105,13 +105,19 @@
 /*
   Trascinamento ricette nel Piano (SortableJS, js/components.js/meal-cell
   + js/feature-piano.js) -> ".piano-draggable" e' il cursore "afferra" sui
-  badge trascinabili; ".piano-sortable-ghost"/".piano-sortable-chosen" sono
-  i nomi di classe passati alle opzioni ghostClass/chosenClass di Sortable
-  (segnaposto nella cella di destinazione ed evidenziazione dell'elemento
-  in trascinamento) - nessuna utility Bootstrap per questo.
+  badge trascinabili, con padding maggiore del badge di Bootstrap (troppo
+  sottile su schermi piccoli per essere afferrato comodamente col dito -
+  vince su quello di bootstrap.min.css per ordine di caricamento dei due
+  file, senza bisogno di !important); ".piano-sortable-ghost"/
+  ".piano-sortable-chosen" sono i nomi di classe passati alle opzioni
+  ghostClass/chosenClass di Sortable (segnaposto nella cella di
+  destinazione ed evidenziazione dell'elemento in trascinamento) - nessuna
+  utility Bootstrap per questo.
 */
 .piano-draggable {
   cursor: grab;
+  padding: 0.5rem 0.5rem;
+  min-height: 2.25rem;
 }
 
 .piano-sortable-ghost {
