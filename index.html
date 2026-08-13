@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>La Spesa</title>
+<title>Shopping Kart</title>
 
 <meta name="description" content="Lista della spesa e piano alimentare settimanale, offline, con ricette e categorie personalizzabili.">
 
@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260812e" in fondo a css/js/manifest/icone.
+  locale: "?v=20260813c" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260812e" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20260813c" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260812e">
+<link rel="manifest" href="manifest.json?v=20260813c">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Spesa">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260812e">
+<meta name="apple-mobile-web-app-title" content="Shopping Kart">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260813c">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260812e">
+<meta name="msapplication-config" content="browserconfig.xml?v=20260813c">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260812e">
+<link rel="icon" href="icons/icon-192.png?v=20260813c">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260812e">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260813c">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260812e">
+<link rel="stylesheet" href="css/custom.css?v=20260813c">
 </head>
 <body>
 
@@ -49,37 +49,14 @@
 
   <!-- ===================== TESTATA ===================== -->
   <nav class="navbar navbar-dark bg-dark py-2">
-    <span class="navbar-brand mb-0 h5"><mdi-icon name="cart-outline" :size="22" class="mr-1"></mdi-icon>La Spesa</span>
+    <span class="navbar-brand mb-0 h5"><mdi-icon name="cart-outline" :size="22" class="mr-1"></mdi-icon>Shopping Kart</span>
   </nav>
 
-  <!-- ===================== NAVIGAZIONE VISTE (SPA) ===================== -->
-  <ul class="nav nav-pills nav-fill bg-light border-bottom py-1 px-3">
-    <li class="nav-item">
-      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'lista' }" @click.prevent="setView('lista')" aria-label="Lista della spesa">
-        <mdi-icon name="cart-outline" :size="24"></mdi-icon>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'piano' }" @click.prevent="setView('piano')" aria-label="Piano alimentare">
-        <mdi-icon name="calendar-week" :size="24"></mdi-icon>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'ricette' }" @click.prevent="setView('ricette')" aria-label="Ricette">
-        <mdi-icon name="silverware-fork-knife" :size="24"></mdi-icon>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'impostazioni' }" @click.prevent="setView('impostazioni')" aria-label="Impostazioni">
-        <mdi-icon name="cog-outline" :size="24"></mdi-icon>
-      </a>
-    </li>
-  </ul>
-
-  <main class="container content-spacer pt-3">
+  <main class="container pt-3" :class="view === 'lista' ? 'content-spacer-lista' : 'content-spacer'">
 
     <!-- ===================== VISTA: LISTA DELLA SPESA ===================== -->
     <template v-if="view === 'lista'">
+      <h1 class="h5 mb-3">Lista della spesa</h1>
       <div class="d-flex justify-content-between align-items-center mb-3">
         <select class="custom-select custom-select-sm" style="max-width: 200px;" v-model="sortMode" aria-label="Ordina lista">
           <option value="categoria">Ordina: per categoria</option>
@@ -184,6 +161,7 @@
 
     <!-- ===================== VISTA: PIANO ALIMENTARE ===================== -->
     <template v-else-if="view === 'piano'">
+      <h1 class="h5 mb-2">Piano alimentare</h1>
       <div class="d-flex justify-content-between align-items-center mb-2">
         <button type="button" class="btn btn-outline-secondary btn-sm" @click="prevWeek" aria-label="Settimana precedente">
           <mdi-icon name="chevron-left"></mdi-icon>
@@ -219,17 +197,38 @@
         :ricette="ricette"
         :is-today="isToday(d)"
         :clipboard="clipboard"
+        :drag-drop-supportato="dragDropSupportato"
         @add-recipe="apriAggiungiRicettaCella(d, $event)"
         @remove-recipe="rimuoviRicettaDaCella(d, $event.mealKey, $event.ricettaId)"
         @edit-recipe="apriEditorRicettaDaId($event)"
+        @duplicate-recipe="duplicaRicettaInCella(d, $event.mealKey, $event.ricettaId)"
         @copy-day="copiaGiorno(d)"
         @paste-day="incollaGiorno(d)">
       </day-row>
     </template>
 
+    <!-- ===================== VISTA: OGGI ===================== -->
+    <template v-else-if="view === 'oggi'">
+      <h1 class="h5 mb-1">Oggi</h1>
+      <p class="text-muted mb-3">{{ giornoLabel(oggiData) }}</p>
+      <div class="mb-3" v-for="pasto in pastiConfig" :key="pasto.key">
+        <meal-cell
+          :pasto="pasto"
+          :ricetta-ids="mealsForDate(oggiData)[pasto.key]"
+          :ricette="ricette"
+          :drag-drop-supportato="dragDropSupportato"
+          :date-key="todayKey"
+          @add="apriAggiungiRicettaCella(oggiData, pasto.key)"
+          @remove="rimuoviRicettaDaCella(oggiData, pasto.key, $event)"
+          @edit="apriEditorRicettaDaId($event)"
+          @duplicate="duplicaRicettaInCella(oggiData, pasto.key, $event)">
+        </meal-cell>
+      </div>
+    </template>
+
     <!-- ===================== VISTA: CATEGORIE LISTA DELLA SPESA / PRODOTTI ===================== -->
     <template v-else-if="view === 'categorie-lista'">
-      <h5 class="mb-3">Categorie lista della spesa e prodotti</h5>
+      <h1 class="h5 mb-3">Categorie lista della spesa e prodotti</h1>
       <ul class="list-group mb-2">
         <li class="list-group-item d-flex align-items-center bg-light">
           <input type="text" class="form-control form-control-sm" :value="senzaCategoriaLabel" disabled>
@@ -252,7 +251,7 @@
 
     <!-- ===================== VISTA: CATEGORIE RICETTE ===================== -->
     <template v-else-if="view === 'categorie-ricette'">
-      <h5 class="mb-3">Categorie ricette</h5>
+      <h1 class="h5 mb-3">Categorie ricette</h1>
       <ul class="list-group mb-2">
         <li class="list-group-item" v-for="cat in categorieRicetteOrdinate" :key="cat.id">
           <div class="d-flex align-items-center mb-1">
@@ -278,7 +277,7 @@
     <!-- ===================== VISTA: RICETTE ===================== -->
     <template v-else-if="view === 'ricette'">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Ricette</h5>
+        <h1 class="h5 mb-0">Ricette</h1>
         <button type="button" class="btn btn-outline-secondary btn-sm" @click="setView('categorie-ricette')" aria-label="Categorie ricette">
           <mdi-icon name="palette-outline" :size="16"></mdi-icon>
         </button>
@@ -309,7 +308,7 @@
 
     <!-- ===================== VISTA: IMPOSTAZIONI ===================== -->
     <template v-else>
-      <h5 class="mb-3">Impostazioni</h5>
+      <h1 class="h5 mb-3">Impostazioni</h1>
 
       <!-- aspetto -->
       <section class="mb-4">
@@ -335,43 +334,75 @@
         </div>
         <p class="small text-muted mt-2 mb-0">Il backup include lista della spesa, categorie, prodotti, ricette e piano alimentare.</p>
       </section>
+
+      <p class="text-center text-muted small mb-0">Versione {{ appVersion }}</p>
     </template>
 
   </main>
 
-  <!-- ===================== BARRA AGGIUNTA ARTICOLO (solo vista Lista) ===================== -->
-  <form v-if="view === 'lista'" class="fixed-bottom bg-white border-top p-2" @submit.prevent="addItem">
-    <div class="form-row no-gutters">
-      <div class="col-7 pr-1">
-        <input
-          type="text"
-          id="new-item-input"
-          class="form-control"
-          v-model="newItemNome"
-          placeholder="Aggiungi articolo…"
-          autocomplete="off">
+  <!-- ===================== FONDO FISSO: barra aggiungi articolo (solo Lista) + menu ===================== -->
+  <div class="fixed-bottom">
+    <form v-if="view === 'lista'" class="bg-tertiary border-top p-2" @submit.prevent="addItem">
+      <div class="form-row no-gutters">
+        <div class="col-7 pr-1">
+          <input
+            type="text"
+            id="new-item-input"
+            class="form-control"
+            v-model="newItemNome"
+            placeholder="Aggiungi articolo…"
+            autocomplete="off">
+        </div>
+        <div class="col-2 pr-1">
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            class="form-control"
+            v-model.number="newItemQuantita"
+            aria-label="Quantità">
+        </div>
+        <div class="col-2 pr-1">
+          <select class="custom-select unit-select" v-model="newItemUnita" aria-label="Unità di misura">
+            <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
+          </select>
+        </div>
+        <div class="col-1">
+          <button type="submit" class="btn btn-primary btn-block h-100 px-0 d-flex align-items-center justify-content-center" aria-label="Aggiungi">
+            <mdi-icon name="plus" :size="22"></mdi-icon>
+          </button>
+        </div>
       </div>
-      <div class="col-2 pr-1">
-        <input
-          type="number"
-          min="0"
-          step="0.1"
-          class="form-control"
-          v-model.number="newItemQuantita"
-          aria-label="Quantità">
-      </div>
-      <div class="col-2 pr-1">
-        <select class="custom-select unit-select" v-model="newItemUnita" aria-label="Unità di misura">
-          <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-        </select>
-      </div>
-      <div class="col-1">
-        <button type="submit" class="btn btn-primary btn-block h-100 px-0 d-flex align-items-center justify-content-center" aria-label="Aggiungi">
-          <mdi-icon name="plus" :size="22"></mdi-icon>
-        </button>
-      </div>
-    </div>
-  </form>
+    </form>
+
+    <ul class="nav nav-pills nav-fill bg-light border-top py-1 px-3">
+      <li class="nav-item">
+        <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'lista' }" @click.prevent="setView('lista')" aria-label="Lista della spesa">
+          <mdi-icon name="cart-outline" :size="24"></mdi-icon>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'piano' }" @click.prevent="setView('piano')" aria-label="Piano alimentare">
+          <mdi-icon name="calendar-week" :size="24"></mdi-icon>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'oggi' }" @click.prevent="setView('oggi')" aria-label="Oggi">
+          <mdi-icon name="calendar-today" :size="24"></mdi-icon>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'ricette' }" @click.prevent="setView('ricette')" aria-label="Ricette">
+          <mdi-icon name="silverware-fork-knife" :size="24"></mdi-icon>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link py-2 px-1" :class="{ active: view === 'impostazioni' }" @click.prevent="setView('impostazioni')" aria-label="Impostazioni">
+          <mdi-icon name="cog-outline" :size="24"></mdi-icon>
+        </a>
+      </li>
+    </ul>
+  </div>
 
   <!-- ===================== TOAST ===================== -->
   <div class="toast-fixed alert alert-dark shadow-sm mb-0 py-2 px-3" v-if="toastMessage" role="status">
@@ -712,35 +743,92 @@
     <div class="card-body p-1">
       <div class="row no-gutters">
         <div class="col-4 px-1" v-for="pasto in pasti" :key="pasto.key">
-          <div class="p-1 rounded h-100" :class="pasto.bgClass">
-            <div class="small font-weight-bold text-truncate mb-1">{{ pasto.label }}</div>
-            <div class="d-flex flex-column">
-              <span class="badge badge-light d-flex justify-content-between align-items-center mb-1 text-truncate" v-for="rid in meals[pasto.key]" :key="rid">
-                <button type="button" class="btn btn-link btn-sm p-0 text-truncate text-dark mr-1" @click="$emit('edit-recipe', rid)" aria-label="Modifica ricetta">{{ nomeRicetta(rid) }}</button>
-                <button type="button" class="btn btn-sm btn-link text-danger p-0" @click="$emit('remove-recipe', { mealKey: pasto.key, ricettaId: rid })" aria-label="Rimuovi ricetta">
-                  <mdi-icon name="close" :size="12"></mdi-icon>
-                </button>
-              </span>
-              <button type="button" class="btn btn-sm btn-outline-secondary btn-block py-0" @click="$emit('add-recipe', pasto.key)" aria-label="Aggiungi ricetta">
-                <mdi-icon name="plus" :size="14"></mdi-icon>
-              </button>
-            </div>
-          </div>
+          <meal-cell
+            :pasto="pasto"
+            :ricetta-ids="meals[pasto.key]"
+            :ricette="ricette"
+            :drag-drop-supportato="dragDropSupportato"
+            :date-key="dateKeyStr"
+            @add="$emit('add-recipe', pasto.key)"
+            @remove="$emit('remove-recipe', { mealKey: pasto.key, ricettaId: $event })"
+            @edit="$emit('edit-recipe', $event)"
+            @duplicate="$emit('duplicate-recipe', { mealKey: pasto.key, ricettaId: $event })">
+          </meal-cell>
         </div>
       </div>
     </div>
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260812e"></script>
-<script src="js/icons.js?v=20260812e"></script>
-<script src="js/data-model.js?v=20260812e"></script>
-<script src="js/components.js?v=20260812e"></script>
-<script src="js/feature-lista.js?v=20260812e"></script>
-<script src="js/feature-categorie.js?v=20260812e"></script>
-<script src="js/feature-prodotti.js?v=20260812e"></script>
-<script src="js/feature-ricette.js?v=20260812e"></script>
-<script src="js/feature-piano.js?v=20260812e"></script>
-<script src="js/app.js?v=20260812e"></script>
+<!-- ===================== TEMPLATE: CELLA PASTO (riusata da Piano settimanale e da Oggi) ===================== -->
+<script type="text/x-template" id="meal-cell-template">
+  <div class="p-1 rounded h-100" :class="pasto.bgClass">
+    <div class="small font-weight-bold text-truncate mb-1">{{ pasto.label }}</div>
+    <div class="d-flex flex-column" ref="lista" :data-piano-date="dateKey" :data-piano-meal="pasto.key">
+      <span
+        class="badge badge-light d-flex justify-content-between align-items-center mb-1"
+        v-for="rid in ricettaIds"
+        :key="rid"
+        :data-ricetta-id="rid"
+        :class="{ 'piano-draggable': dragDropSupportato }">
+        <button type="button" class="btn btn-link btn-sm p-0 text-truncate text-dark mr-1" @click="$emit('edit', rid)" aria-label="Modifica ricetta">{{ nomeRicetta(rid) }}</button>
+        <span class="flex-shrink-0">
+          <button type="button" class="btn btn-sm btn-link text-secondary p-0 mr-1 piano-badge-action" @click="$emit('duplicate', rid)" aria-label="Duplica ricetta">
+            <mdi-icon name="content-copy" :size="12"></mdi-icon>
+          </button>
+          <button type="button" class="btn btn-sm btn-link text-danger p-0 piano-badge-action" @click="$emit('remove', rid)" aria-label="Rimuovi ricetta">
+            <mdi-icon name="close" :size="12"></mdi-icon>
+          </button>
+        </span>
+      </span>
+      <button type="button" class="btn btn-sm btn-outline-secondary btn-block py-0" @click="$emit('add')" aria-label="Aggiungi ricetta">
+        <mdi-icon name="plus" :size="14"></mdi-icon>
+      </button>
+    </div>
+  </div>
+</script>
+
+<script src="js/vue.min.js?v=20260813c"></script>
+<!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
+<script src="js/sortable.min.js?v=20260813c"></script>
+<script src="js/icons.js?v=20260813c"></script>
+<script src="js/data-model.js?v=20260813c"></script>
+<script src="js/components.js?v=20260813c"></script>
+<script src="js/feature-lista.js?v=20260813c"></script>
+<script src="js/feature-categorie.js?v=20260813c"></script>
+<script src="js/feature-prodotti.js?v=20260813c"></script>
+<script src="js/feature-ricette.js?v=20260813c"></script>
+<script src="js/feature-piano.js?v=20260813c"></script>
+<script src="js/app.js?v=20260813c"></script>
+
+<!--
+  Service Worker: rende l'app completamente offline anche a scheda/app
+  chiusa e riaperta senza connessione (vedi sw.js e README). Progressive
+  enhancement: se il browser non lo supporta (es. Edge 14 sul Lumia) non
+  succede nulla, l'app continua a funzionare come prima.
+-->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      // ricontrolla se c'e' una versione nuova quando l'utente torna sull'app
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') reg.update();
+      });
+      window.addEventListener('focus', function () { reg.update(); });
+    });
+  });
+
+  // Quando il nuovo Service Worker prende il controllo (skipWaiting +
+  // clients.claim in sw.js), ricarica la pagina una volta sola: l'utente
+  // vede subito la versione aggiornata senza dover fare nulla.
+  var swAggiornamentoInCorso = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (swAggiornamentoInCorso) return;
+    swAggiornamentoInCorso = true;
+    window.location.reload();
+  });
+}
+</script>
 </body>
 </html>

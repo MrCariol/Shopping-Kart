@@ -1,5 +1,5 @@
 /*
-  La Spesa - vista "Lista della spesa"
+  Shopping Kart - vista "Lista della spesa"
   Legge/scrive anche `categorie` (corsie), di proprieta' di FeatureCategorie,
   e chiama `showToast`, di proprieta' di app.js.
 */

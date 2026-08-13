@@ -1,5 +1,5 @@
 /*
-  La Spesa - assemblaggio app (SPA)
+  Shopping Kart - assemblaggio app (SPA)
 
   Nessun mixin Vue: ogni "feature" e' un plain object JS (window.FeatureXxx)
   con data()/computed/methods, unito qui a mano tramite mergeUnique(), che
@@ -44,6 +44,7 @@
   function buildRootData() {
     var data = {
       view: "lista", // 'lista' | 'piano' | 'categorie-lista' | 'categorie-ricette' | 'prodotti' | 'ricette' | 'impostazioni'
+      appVersion: DataModel.APP_VERSION,
       units: DataModel.UNITS,
       pastiConfig: DataModel.PASTI,
       temaScuro: false,

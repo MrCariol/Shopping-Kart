@@ -1,5 +1,5 @@
 /*
-  La Spesa - CSS custom minimo.
+  Shopping Kart - CSS custom minimo.
 
   Regola seguita: tutto il resto dell'interfaccia usa esclusivamente classi
   di Bootstrap 4.6 (bootstrap.min.css). Queste poche regole esistono solo
@@ -7,10 +7,13 @@
 
   - .text-strike     -> decorazione line-through (assente tra le utility
                         text-decoration-* di Bootstrap 4)
-  - .content-spacer  -> spazio in fondo alla lista per non finire sotto la
-                        barra fixed-bottom di aggiunta articolo (l'altezza
-                        esatta della barra non corrisponde a nessuno step
-                        della scala spaziatura di Bootstrap)
+  - .content-spacer  -> spazio in fondo al contenuto per non finire sotto
+                        il menu fisso in fondo (l'altezza esatta non
+                        corrisponde a nessuno step della scala spaziatura
+                        di Bootstrap); .content-spacer-lista e' la stessa
+                        cosa ma piu' alta, per la vista Lista dove sopra
+                        al menu c'e' impilata anche la barra aggiungi
+                        articolo
   - .toast-fixed     -> posizionamento del toast di conferma sopra la barra
                         fixed-bottom (Bootstrap 4 non ha utility di offset
                         arbitrari, solo position-fixed generico)
@@ -31,13 +34,17 @@
 }
 
 .content-spacer {
-  padding-bottom: 96px;
+  padding-bottom: 76px;
+}
+
+.content-spacer-lista {
+  padding-bottom: 160px;
 }
 
 .toast-fixed {
   position: fixed;
   left: 50%;
-  bottom: 84px;
+  bottom: 132px;
   transform: translateX(-50%);
   z-index: 1080;
   max-width: 90%;
@@ -93,6 +100,36 @@
 */
 .unit-select {
   max-width: 5.5rem;
+}
+
+/*
+  Trascinamento ricette nel Piano (SortableJS, js/components.js/meal-cell
+  + js/feature-piano.js) -> ".piano-draggable" e' il cursore "afferra" sui
+  badge trascinabili; ".piano-sortable-ghost"/".piano-sortable-chosen" sono
+  i nomi di classe passati alle opzioni ghostClass/chosenClass di Sortable
+  (segnaposto nella cella di destinazione ed evidenziazione dell'elemento
+  in trascinamento) - nessuna utility Bootstrap per questo.
+*/
+.piano-draggable {
+  cursor: grab;
+}
+
+.piano-sortable-ghost {
+  opacity: 0.35;
+  outline: 2px dashed #343a40;
+  outline-offset: -2px;
+}
+
+.piano-sortable-chosen {
+  box-shadow: 0 0 0 2px #343a40 inset;
+}
+
+html.theme-dark .piano-sortable-ghost {
+  outline-color: #e9ecef;
+}
+
+html.theme-dark .piano-sortable-chosen {
+  box-shadow: 0 0 0 2px #e9ecef inset;
 }
 
 /*

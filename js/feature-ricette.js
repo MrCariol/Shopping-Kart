@@ -1,5 +1,5 @@
 /*
-  La Spesa - catalogo ricette ed editor ricetta (modale)
+  Shopping Kart - catalogo ricette ed editor ricetta (modale)
 
   Una ricetta nuova viene creata come bozza NON ancora presente in
   `ricette`: "Annulla" la scarta semplicemente. Una ricetta esistente
@@ -194,6 +194,22 @@
         this.showToast("Ricetta salvata: " + this.ricettaDraft.nome);
         this.showRecipeEditor = false;
         this.ricettaDraft = null;
+      },
+
+      // clona una ricetta (nuovo id, ingredienti/categorie copiati): usata
+      // da FeaturePiano.duplicaRicettaInCella per duplicare una ricetta
+      // gia' pianificata nella stessa cella
+      duplicaRicetta: function (ricetta) {
+        var clone = {
+          id: DataModel.uid("ric"),
+          nome: ricetta.nome + " (copia)",
+          categorieIds: ricetta.categorieIds.slice(),
+          ingredienti: ricetta.ingredienti.map(function (ing) {
+            return { prodottoId: ing.prodottoId, quantita: ing.quantita };
+          })
+        };
+        this.ricette.push(clone);
+        return clone;
       },
 
       // ---------- eliminazione ----------

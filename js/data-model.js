@@ -1,5 +1,5 @@
 /*
-  La Spesa - modello dati e persistenza (localStorage)
+  Shopping Kart - modello dati e persistenza (localStorage)
 
   Note di compatibilita volutamente rispettate in questo file:
   - niente spread operator {...obj} / [...arr]  (ES2018, non supportato da Edge 14)
@@ -18,6 +18,12 @@
   // preferenza di visualizzazione del dispositivo, non un dato utente:
   // volutamente fuori dal blob v2 (non fa parte del backup/export)
   var STORAGE_KEY_TEMA = "shopping-kart-tema-v1";
+
+  // stesso valore del cache busting "?v=..." (vedi README, sezione
+  // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
+  // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
+  // di ogni pubblicazione.
+  var APP_VERSION = "20260813c";
 
   var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 
@@ -286,6 +292,7 @@
   window.DataModel = {
     STORAGE_KEY_V2: STORAGE_KEY_V2,
     STORAGE_KEY_V1: STORAGE_KEY_V1,
+    APP_VERSION: APP_VERSION,
     UNITS: UNITS,
     SWATCH_COLORS: SWATCH_COLORS,
     DEFAULT_CATEGORIE: DEFAULT_CATEGORIE,

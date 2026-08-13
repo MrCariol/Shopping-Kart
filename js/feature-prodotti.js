@@ -1,5 +1,5 @@
 /*
-  La Spesa - catalogo prodotti
+  Shopping Kart - catalogo prodotti
   Il catalogo si popola da solo: creazione "al volo" di un prodotto non
   trovato dentro l'editor ricetta (FeatureRicette), oppure archiviazione
   automatica quando un articolo preso viene eliminato dalla lista

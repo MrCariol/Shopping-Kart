@@ -1,5 +1,5 @@
 /*
-  La Spesa - vista "Piano alimentare"
+  Shopping Kart - vista "Piano alimentare"
   Settimana Lun-Dom, navigazione a offset, celle pasto, copia/incolla,
   generazione della lista della spesa dalla pianificazione.
 
@@ -13,6 +13,21 @@
 (function () {
   "use strict";
 
+  // Trascinamento ricette nel Piano: il gesto (soglia di movimento,
+  // pressione prolungata prima di attivarsi su touch, auto-scroll,
+  // differenziazione scroll-vs-drag) e' gestito da SortableJS
+  // (js/sortable.min.js, self-hosted, MIT - github.com/SortableJS/Sortable),
+  // istanziata per ogni cella pasto in js/components.js (componente
+  // meal-cell). E' una libreria matura pensata apposta per questo: una
+  // implementazione a mano coi soli eventi DOM (provata in precedenza) si
+  // e' rivelata inaffidabile su device touch reali (il browser puo'
+  // decidere di scrollare la pagina prima che il JS intervenga, in base al
+  // solo CSS "touch-action" - una gara persa in partenza senza una libreria
+  // che gestisca la cosa a basso livello).
+  function rilevaDragDropSupportato() {
+    return !!window.Sortable;
+  }
+
   window.FeaturePiano = {
     data: function () {
       return {
@@ -25,7 +40,9 @@
         pendingCellTarget: null, // {data, mealKey} - creazione ricetta da cella
 
         showGeneraListaModal: false,
-        generaListaSelezione: {} // dateKey -> {colazione,pranzo,cena}: bool
+        generaListaSelezione: {}, // dateKey -> {colazione,pranzo,cena}: bool
+
+        dragDropSupportato: rilevaDragDropSupportato()
       };
     },
 
@@ -50,6 +67,13 @@
 
       todayKey: function () {
         return DataModel.isoDateKey(new Date());
+      },
+
+      // vista "Oggi": stesso pattern di staleness accettata di todayKey
+      // (se l'app resta aperta a cavallo di mezzanotte non si aggiorna da
+      // sola finche' qualche altra reattivita' non forza un re-render)
+      oggiData: function () {
+        return new Date();
       }
     },
 
@@ -145,6 +169,39 @@
         if (!entry) return;
         var pos = entry[mealKey].indexOf(ricettaId);
         if (pos !== -1) entry[mealKey].splice(pos, 1);
+      },
+
+      // duplica una ricetta gia' pianificata nella STESSA cella: clona la
+      // ricetta (FeatureRicette.duplicaRicetta) e assegna il clone alla
+      // cella di partenza, senza chiedere nulla all'utente
+      duplicaRicettaInCella: function (date, mealKey, ricettaId) {
+        var originale = this.ricettaById(ricettaId);
+        if (!originale) return;
+        var clone = this.duplicaRicetta(originale);
+        this.assegnaRicettaACella(date, mealKey, clone.id);
+        this.showToast("Ricetta duplicata: " + clone.nome);
+      },
+
+      // ---------- drag & drop (solo se dragDropSupportato) ----------
+      // Chiamato da SortableJS (vedi js/components.js, meal-cell, "onEnd")
+      // quando una ricetta viene rilasciata su una cella diversa da quella
+      // di partenza. Riceve le chiavi (data ISO + pasto) direttamente dagli
+      // attributi data-piano-date/data-piano-meal sul DOM, niente Date da
+      // ricostruire.
+      spostaRicettaPianoTraCelle: function (fromDateKey, fromMealKey, toDateKey, toMealKey, ricettaId) {
+        var origineEntry = this.piano[fromDateKey];
+        if (origineEntry) {
+          var pos = origineEntry[fromMealKey].indexOf(ricettaId);
+          if (pos !== -1) origineEntry[fromMealKey].splice(pos, 1);
+        }
+
+        if (!this.piano[toDateKey]) {
+          this.$set(this.piano, toDateKey, { colazione: [], pranzo: [], cena: [] });
+        }
+        var destEntry = this.piano[toDateKey];
+        if (destEntry[toMealKey].indexOf(ricettaId) === -1) {
+          destEntry[toMealKey].push(ricettaId);
+        }
       },
 
       // ---------- copia/incolla ----------

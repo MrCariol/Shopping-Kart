@@ -1,5 +1,5 @@
 /*
-  La Spesa - gestione categorie
+  Shopping Kart - gestione categorie
   - `categorie` (corsie supermercato): condivise dagli item di `lista` e
     dai `prodotti` (di proprieta' di FeatureProdotti, letti qui in cascata)
   - `categorieRicette` (tag nutrizionali colorati): usate da `ricette`

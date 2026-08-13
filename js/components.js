@@ -1,5 +1,5 @@
 /*
-  La Spesa - componenti Vue riutilizzabili
+  Shopping Kart - componenti Vue riutilizzabili
   (templates definiti come <script type="text/x-template"> in index.html)
 */
 
@@ -124,6 +124,104 @@
     }
   });
 
+  // ---------- cella pasto (badge ricette + aggiungi) ----------
+  // Riusata sia da day-row (vista Piano settimanale, 3 colonne strette)
+  // sia dalla vista Oggi (3 sezioni impilate a piena larghezza): il layout
+  // (colonna vs sezione intera) e' deciso dal genitore, questo componente
+  // si occupa solo del contenuto della cella.
+  Vue.component("meal-cell", {
+    template: "#meal-cell-template",
+    props: {
+      pasto: { type: Object, required: true },
+      ricettaIds: { type: Array, required: true },
+      ricette: { type: Array, required: true },
+      dragDropSupportato: { type: Boolean, default: false },
+      // data ISO (YYYY-MM-DD) della cella: serve solo per identificarla nel
+      // DOM (attributi data-piano-date/data-piano-meal sul contenitore
+      // $refs.lista, vedi template) - SortableJS li legge in "onEnd" per
+      // sapere da dove a dove e' stata spostata una ricetta.
+      dateKey: { type: String, default: "" }
+    },
+    methods: {
+      nomeRicetta: function (ricettaId) {
+        var found = null;
+        this.ricette.forEach(function (r) {
+          if (r.id === ricettaId) found = r;
+        });
+        return found ? found.nome : "(ricetta eliminata)";
+      }
+    },
+
+    // Trascinamento ricette (Piano alimentare): un'istanza SortableJS per
+    // ogni cella pasto, tutte nello stesso "group" cosi' si può trascinare
+    // una ricetta da una cella all'altra (stesso giorno o giorno diverso).
+    // SortableJS gestisce lui il gesto (soglia di movimento, pressione
+    // prolungata su touch, auto-scroll, differenziazione scroll-vs-drag):
+    // e' una libreria matura specificamente per questo, molto più
+    // affidabile di una gestione a mano di pointerdown/move/up sui
+    // touch device reali (vedi commento in js/feature-piano.js).
+    mounted: function () {
+      if (!this.dragDropSupportato || !window.Sortable) return;
+      var vm = this.$root;
+      try {
+        this._sortable = new Sortable(this.$refs.lista, {
+          group: "piano-ricette",
+          draggable: ".piano-draggable",
+          filter: "button",
+          preventOnFilter: false,
+          animation: 150,
+          forceFallback: true,
+          fallbackTolerance: 3,
+          delay: 150,
+          delayOnTouchOnly: true,
+          touchStartThreshold: 5,
+          ghostClass: "piano-sortable-ghost",
+          chosenClass: "piano-sortable-chosen",
+          onEnd: function (evt) {
+            var item = evt.item;
+            var from = evt.from;
+
+            // Sortable ha gia' spostato "item" nel DOM: lo si riporta alla
+            // posizione originale, cosi' e' Vue (non Sortable) a decidere
+            // il DOM finale in base ai dati aggiornati sotto.
+            if (evt.oldIndex < from.children.length) {
+              from.insertBefore(item, from.children[evt.oldIndex]);
+            } else {
+              from.appendChild(item);
+            }
+
+            var ricettaId = item.getAttribute("data-ricetta-id");
+            var fromDateKey = from.getAttribute("data-piano-date");
+            var fromMealKey = from.getAttribute("data-piano-meal");
+            var toDateKey = evt.to.getAttribute("data-piano-date");
+            var toMealKey = evt.to.getAttribute("data-piano-meal");
+
+            if (fromDateKey === toDateKey && fromMealKey === toMealKey) return;
+
+            vm.spostaRicettaPianoTraCelle(
+              fromDateKey,
+              fromMealKey,
+              toDateKey,
+              toMealKey,
+              ricettaId
+            );
+          }
+        });
+      } catch (e) {
+        // motore senza supporto sufficiente (es. Edge molto vecchio):
+        // niente trascinamento, il resto della cella funziona comunque
+        this._sortable = null;
+      }
+    },
+
+    beforeDestroy: function () {
+      if (this._sortable) {
+        this._sortable.destroy();
+        this._sortable = null;
+      }
+    }
+  });
+
   // ---------- riga giorno (vista Piano alimentare) ----------
   Vue.component("day-row", {
     template: "#day-row-template",
@@ -132,7 +230,8 @@
       meals: { type: Object, required: true },
       ricette: { type: Array, required: true },
       isToday: { type: Boolean, default: false },
-      clipboard: { type: Object, default: null }
+      clipboard: { type: Object, default: null },
+      dragDropSupportato: { type: Boolean, default: false }
     },
     data: function () {
       return { pasti: DataModel.PASTI };
@@ -147,15 +246,9 @@
       },
       canPasteDay: function () {
         return !!this.clipboard && this.clipboard.type === "day";
-      }
-    },
-    methods: {
-      nomeRicetta: function (ricettaId) {
-        var found = null;
-        this.ricette.forEach(function (r) {
-          if (r.id === ricettaId) found = r;
-        });
-        return found ? found.nome : "(ricetta eliminata)";
+      },
+      dateKeyStr: function () {
+        return DataModel.isoDateKey(this.date);
       }
     }
   });

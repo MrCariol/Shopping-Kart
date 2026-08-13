@@ -1,10 +1,14 @@
-# La Spesa - regole di cache
+# Shopping Kart - regole di cache
 #
 # Strategia: HTML/manifest/config non vanno MAI in cache (il browser deve
 # sempre ricontrollarli), mentre CSS/JS/immagini possono restare in cache
 # a lungo, perche' ogni aggiornamento cambia il parametro "?v=..." nel loro
 # URL (vedi il commento in cima a index.html) costringendo comunque il
 # telefono a scaricarne una copia nuova quando serve davvero.
+#
+# sw.js (Service Worker, vedi sw.js e README) fa eccezione alla regola
+# JS qui sotto: deve restare no-cache come l'HTML, altrimenti il browser
+# non si accorge subito quando esce una versione nuova.
 
 <IfModule mod_headers.c>
   <FilesMatch "\.(html|json|xml)$">
@@ -15,5 +19,15 @@
 
   <FilesMatch "\.(css|js|png)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # sw.js: mai in cache, altrimenti il browser non si accorge degli
+  # aggiornamenti (deve sempre ricontrollare il file per intero, non
+  # solo ogni 24h come farebbe di default sui Service Worker). Questa
+  # regola sovrascrive quella generica ".js" qui sopra perche' viene dopo.
+  <FilesMatch "^sw\.js$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
   </FilesMatch>
 </IfModule>
