@@ -14,7 +14,7 @@
 (function () {
   "use strict";
 
-  ["DataModel", "FeatureLista", "FeatureCategorie", "FeatureProdotti", "FeatureRicette", "FeaturePiano"].forEach(
+  ["DataModel", "Auth", "Sync", "FeatureLista", "FeatureCategorie", "FeatureProdotti", "FeatureRicette", "FeaturePiano", "FeatureAccount"].forEach(
     function (name) {
       if (!window[name]) {
         throw new Error(
@@ -47,6 +47,7 @@
       appVersion: DataModel.APP_VERSION,
       units: DataModel.UNITS,
       pastiConfig: DataModel.PASTI,
+      aggiornatoIl: 0,
       temaScuro: false,
       toastMessage: "",
       toastTimer: null
@@ -57,6 +58,7 @@
     mergeUnique(data, FeatureProdotti.data(), "FeatureProdotti.data");
     mergeUnique(data, FeatureRicette.data(), "FeatureRicette.data");
     mergeUnique(data, FeaturePiano.data(), "FeaturePiano.data");
+    mergeUnique(data, FeatureAccount.data(), "FeatureAccount.data");
 
     return data;
   }
@@ -75,6 +77,7 @@
   );
   mergeUnique(rootComputed, FeatureRicette.computed, "FeatureRicette.computed");
   mergeUnique(rootComputed, FeaturePiano.computed, "FeaturePiano.computed");
+  mergeUnique(rootComputed, FeatureAccount.computed, "FeatureAccount.computed");
 
   var rootMethods = {
     // ---------- navigazione SPA ----------
@@ -211,6 +214,7 @@
   mergeUnique(rootMethods, FeatureProdotti.methods, "FeatureProdotti.methods");
   mergeUnique(rootMethods, FeatureRicette.methods, "FeatureRicette.methods");
   mergeUnique(rootMethods, FeaturePiano.methods, "FeaturePiano.methods");
+  mergeUnique(rootMethods, FeatureAccount.methods, "FeatureAccount.methods");
 
   function persistHandler() {
     this.persistAll();
@@ -240,6 +244,13 @@
     watch: rootWatch,
 
     created: function () {
+      // va per primo: se l'URL contiene "#token=..." (ritorno dal login
+      // su auth.example.invalid) lo consuma e ripulisce subito l'URL
+      Auth.consumeCallbackToken();
+      // data() di FeatureAccount ha gia' provato a leggere lo stato di
+      // login, ma prima che consumeCallbackToken() girasse: ricontrolla
+      this.loggedIn = Auth.isLoggedIn();
+
       var state = DataModel.load();
       this.lista = state.lista;
       this.categorie = state.categorie;
@@ -248,9 +259,14 @@
       this.ricette = state.ricette;
       this.categorieRicette = state.categorieRicette;
       this.piano = state.piano;
+      this.aggiornatoIl = state.aggiornatoIl;
 
       this.temaScuro = DataModel.loadTema();
       document.documentElement.classList.toggle("theme-dark", this.temaScuro);
+
+      if (this.loggedIn) {
+        Sync.run(this, { silent: true });
+      }
     }
   });
 })();

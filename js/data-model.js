@@ -18,12 +18,19 @@
   // preferenza di visualizzazione del dispositivo, non un dato utente:
   // volutamente fuori dal blob v2 (non fa parte del backup/export)
   var STORAGE_KEY_TEMA = "shopping-kart-tema-v1";
+  // stato di sincronizzazione: dispositivo-specifico (qual e' l'ultimo
+  // "lastModified" del server che QUESTO dispositivo ha gia' visto/scritto),
+  // volutamente fuori dal blob v2 per lo stesso motivo del tema
+  var STORAGE_KEY_SYNC_META = "shopping-kart-sync-meta-v1";
+  // token di accesso all'hub auth.example.invalid, fuori dal blob v2 (non ha
+  // senso includerlo in un backup/export)
+  var STORAGE_KEY_AUTH_TOKEN = "shopping-kart-auth-token-v1";
 
   // stesso valore del cache busting "?v=..." (vedi README, sezione
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20260813d";
+  var APP_VERSION = "20260816b";
 
   var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 
@@ -211,7 +218,11 @@
       categorieRicette: DEFAULT_CATEGORIE_RICETTE.map(function (c) {
         return { id: c.id, nome: c.nome, colore: c.colore };
       }),
-      piano: {}
+      piano: {},
+      // data dell'ultima modifica locale (epoch ms), usata dalla sync
+      // cloud per capire quale tra locale/server e' piu' recente. 0
+      // significa "mai modificato/mai salvato" (stato di default).
+      aggiornatoIl: 0
     };
   }
 
@@ -236,6 +247,8 @@
       state.categorieRicette = parsed.categorieRicette;
     if (parsed.piano && typeof parsed.piano === "object")
       state.piano = parsed.piano;
+    if (typeof parsed.aggiornatoIl === "number")
+      state.aggiornatoIl = parsed.aggiornatoIl;
 
     return state;
   }
@@ -261,6 +274,12 @@
   }
 
   function persist(payload) {
+    // timbro "ultima modifica locale" ad ogni salvataggio: e' quello che
+    // la sync cloud usa per capire se questo dispositivo ha dati piu'
+    // recenti di quelli sul server (vedi js/sync.js). Aggiornato anche
+    // sull'oggetto passato, cosi' resta coerente in memoria oltre che
+    // su storage.
+    payload.aggiornatoIl = Date.now();
     writeJSON(STORAGE_KEY_V2, {
       lista: payload.lista,
       categorie: payload.categorie,
@@ -268,7 +287,8 @@
       prodotti: payload.prodotti,
       ricette: payload.ricette,
       categorieRicette: payload.categorieRicette,
-      piano: payload.piano
+      piano: payload.piano,
+      aggiornatoIl: payload.aggiornatoIl
     });
   }
 
@@ -286,6 +306,48 @@
       localStorage.setItem(STORAGE_KEY_TEMA, isDark ? "dark" : "light");
     } catch (e) {
       // ignorato silenziosamente, come per il resto della persistenza
+    }
+  }
+
+  // ---------- stato di sincronizzazione (chiave dedicata, fuori dal blob v2) ----------
+  function loadSyncMeta() {
+    var parsed = readJSON(STORAGE_KEY_SYNC_META);
+    return {
+      lastSyncedModified:
+        parsed && typeof parsed.lastSyncedModified === "number"
+          ? parsed.lastSyncedModified
+          : null
+    };
+  }
+
+  function persistSyncMeta(meta) {
+    writeJSON(STORAGE_KEY_SYNC_META, {
+      lastSyncedModified: meta.lastSyncedModified
+    });
+  }
+
+  // ---------- token di accesso auth.example.invalid (chiave dedicata) ----------
+  function loadAuthToken() {
+    try {
+      return localStorage.getItem(STORAGE_KEY_AUTH_TOKEN);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function persistAuthToken(token) {
+    try {
+      localStorage.setItem(STORAGE_KEY_AUTH_TOKEN, token);
+    } catch (e) {
+      // ignorato silenziosamente, come per il resto della persistenza
+    }
+  }
+
+  function clearAuthToken() {
+    try {
+      localStorage.removeItem(STORAGE_KEY_AUTH_TOKEN);
+    } catch (e) {
+      // ignorato silenziosamente
     }
   }
 
@@ -310,6 +372,11 @@
     load: load,
     persist: persist,
     loadTema: loadTema,
-    persistTema: persistTema
+    persistTema: persistTema,
+    loadSyncMeta: loadSyncMeta,
+    persistSyncMeta: persistSyncMeta,
+    loadAuthToken: loadAuthToken,
+    persistAuthToken: persistAuthToken,
+    clearAuthToken: clearAuthToken
   };
 })();

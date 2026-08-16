@@ -1,0 +1,9 @@
+# Su alcune configurazioni Apache + PHP-CGI/FastCGI (comune su hosting
+# condiviso) l'header Authorization non arriva a PHP in $_SERVER senza
+# questo aiuto esplicito. Necessario perche' sync.php autentica ogni
+# richiesta tramite bearer token in quell'header.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>

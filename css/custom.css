@@ -120,6 +120,25 @@
   min-height: 2.25rem;
 }
 
+/*
+  .piano-recipe-name -> il nome ricetta dentro un badge va a capo invece di
+  troncarsi con "...". Serve sovrascrivere tre cose che Bootstrap 4 imposta
+  su ".btn" e che altrimenti lo impedirebbero: "white-space: nowrap" (va a
+  capo), "text-align: center" (a sinistra, coerente col resto dell'app) e
+  la larghezza shrink-to-fit di default (flex-grow lo fa occupare lo spazio
+  disponibile nel badge, altrimenti non ci sarebbe mai un bordo su cui
+  andare a capo); "min-width: 0" e' il classico correttivo per far
+  restringere/avvolgere un elemento flessibile invece di spingere oltre il
+  contenitore.
+*/
+.piano-recipe-name {
+  white-space: normal;
+  text-align: left;
+  word-break: break-word;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .piano-sortable-ghost {
   opacity: 0.35;
   outline: 2px dashed #343a40;

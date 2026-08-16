@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260813d" in fondo a css/js/manifest/icone.
+  locale: "?v=20260816b" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260813d" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20260816b" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260813d">
+<link rel="manifest" href="manifest.json?v=20260816b">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shopping Kart">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260813d">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260816b">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260813d">
+<meta name="msapplication-config" content="browserconfig.xml?v=20260816b">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260813d">
+<link rel="icon" href="icons/icon-192.png?v=20260816b">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260813d">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260816b">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260813d">
+<link rel="stylesheet" href="css/custom.css?v=20260816b">
 </head>
 <body>
 
@@ -50,6 +50,9 @@
   <!-- ===================== TESTATA ===================== -->
   <nav class="navbar navbar-dark bg-dark py-2">
     <span class="navbar-brand mb-0 h5"><mdi-icon name="cart-outline" :size="22" class="mr-1"></mdi-icon>Shopping Kart</span>
+    <button type="button" class="btn btn-outline-light btn-sm" v-if="loggedIn" @click="syncNow" aria-label="Sincronizza ora">
+      <mdi-icon name="sync" :size="18"></mdi-icon>
+    </button>
   </nav>
 
   <main class="container pt-3" :class="view === 'lista' ? 'content-spacer-lista' : 'content-spacer'">
@@ -319,6 +322,28 @@
         </div>
       </section>
 
+      <!-- account e sincronizzazione cloud -->
+      <section class="mb-4">
+        <h6 class="text-uppercase text-muted small">Account</h6>
+
+        <template v-if="!loggedIn">
+          <p class="small text-muted">Accedi con il tuo account example.invalid per usare Shopping Kart su più dispositivi con gli stessi dati.</p>
+          <button type="button" class="btn btn-primary" @click="login">Accedi con account example.invalid</button>
+        </template>
+
+        <template v-else>
+          <p class="mb-1">
+            Connesso come <strong>{{ authUser ? authUser.name : '…' }}</strong>
+            <span class="d-block small text-muted" v-if="authUser">{{ authUser.email }}</span>
+          </p>
+          <p class="small text-muted mb-2">Ultima sincronizzazione: {{ lastSyncLabel }}</p>
+          <div class="d-flex flex-column">
+            <button type="button" class="btn btn-outline-primary mb-2" @click="syncNow">Sincronizza ora</button>
+            <button type="button" class="btn btn-outline-secondary" @click="logout">Esci</button>
+          </div>
+        </template>
+      </section>
+
       <!-- backup -->
       <section class="mb-4">
         <h6 class="text-uppercase text-muted small">Backup dati</h6>
@@ -531,6 +556,50 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="chiudiEditorRicetta">{{ ricettaDraftIsNew ? 'Annulla' : 'Chiudi' }}</button>
             <button type="button" class="btn btn-primary" @click="salvaRicetta">Salva</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===================== MODALE: CONFLITTO SINCRONIZZAZIONE ===================== -->
+  <template v-if="syncConflict">
+    <div class="modal-backdrop show"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Dati diversi tra dispositivo e server</h5>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted">Questo dispositivo e il server hanno dati diversi, modificati entrambi dall'ultima sincronizzazione. Scegli quale versione tenere: l'altra verrà sovrascritta.</p>
+
+            <div class="row no-gutters">
+              <div class="col-6 pr-1">
+                <div class="card card-body p-2">
+                  <div class="font-weight-bold small mb-1">Questo dispositivo</div>
+                  <div class="small text-muted mb-2">{{ formatSyncTimestamp(syncConflict.local.aggiornatoIl) }}</div>
+                  <div class="small">Lista: {{ syncConflict.local.lista }}</div>
+                  <div class="small">Ricette: {{ syncConflict.local.ricette }}</div>
+                  <div class="small">Prodotti: {{ syncConflict.local.prodotti }}</div>
+                  <div class="small">Giorni pianificati: {{ syncConflict.local.pianoGiorni }}</div>
+                </div>
+              </div>
+              <div class="col-6 pl-1">
+                <div class="card card-body p-2">
+                  <div class="font-weight-bold small mb-1">Server</div>
+                  <div class="small text-muted mb-2">{{ formatSyncTimestamp(syncConflict.remote.aggiornatoIl) }}</div>
+                  <div class="small">Lista: {{ syncConflict.remote.lista }}</div>
+                  <div class="small">Ricette: {{ syncConflict.remote.ricette }}</div>
+                  <div class="small">Prodotti: {{ syncConflict.remote.prodotti }}</div>
+                  <div class="small">Giorni pianificati: {{ syncConflict.remote.pianoGiorni }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer flex-column">
+            <button type="button" class="btn btn-primary btn-block" @click="resolveSyncConflict('locale')">Mantieni i dati di questo dispositivo</button>
+            <button type="button" class="btn btn-outline-primary btn-block ml-0" @click="resolveSyncConflict('server')">Usa i dati dal server</button>
           </div>
         </div>
       </div>
@@ -771,7 +840,7 @@
         :key="rid"
         :data-ricetta-id="rid"
         :class="{ 'piano-draggable': dragDropSupportato }">
-        <button type="button" class="btn btn-link btn-sm p-0 text-truncate text-dark mr-1" @click="$emit('edit', rid)" aria-label="Modifica ricetta">{{ nomeRicetta(rid) }}</button>
+        <button type="button" class="btn btn-link btn-sm p-0 piano-recipe-name text-dark mr-1" @click="$emit('edit', rid)" aria-label="Modifica ricetta">{{ nomeRicetta(rid) }}</button>
         <span class="flex-shrink-0">
           <button type="button" class="btn btn-sm btn-link text-secondary p-0 mr-1 piano-badge-action" @click="$emit('duplicate', rid)" aria-label="Duplica ricetta">
             <mdi-icon name="content-copy" :size="12"></mdi-icon>
@@ -788,18 +857,22 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260813d"></script>
+<script src="js/vue.min.js?v=20260816b"></script>
 <!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
-<script src="js/sortable.min.js?v=20260813d"></script>
-<script src="js/icons.js?v=20260813d"></script>
-<script src="js/data-model.js?v=20260813d"></script>
-<script src="js/components.js?v=20260813d"></script>
-<script src="js/feature-lista.js?v=20260813d"></script>
-<script src="js/feature-categorie.js?v=20260813d"></script>
-<script src="js/feature-prodotti.js?v=20260813d"></script>
-<script src="js/feature-ricette.js?v=20260813d"></script>
-<script src="js/feature-piano.js?v=20260813d"></script>
-<script src="js/app.js?v=20260813d"></script>
+<script src="js/sortable.min.js?v=20260816b"></script>
+<script src="js/icons.js?v=20260816b"></script>
+<script src="js/data-model.js?v=20260816b"></script>
+<script src="js/components.js?v=20260816b"></script>
+<script src="js/feature-lista.js?v=20260816b"></script>
+<script src="js/feature-categorie.js?v=20260816b"></script>
+<script src="js/feature-prodotti.js?v=20260816b"></script>
+<script src="js/feature-ricette.js?v=20260816b"></script>
+<script src="js/feature-piano.js?v=20260816b"></script>
+<!-- Account (login auth.example.invalid) e sincronizzazione cloud -->
+<script src="js/auth.js?v=20260816b"></script>
+<script src="js/sync.js?v=20260816b"></script>
+<script src="js/feature-account.js?v=20260816b"></script>
+<script src="js/app.js?v=20260816b"></script>
 
 <!--
   Service Worker: rende l'app completamente offline anche a scheda/app
