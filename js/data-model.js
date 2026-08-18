@@ -30,7 +30,7 @@
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20260816d";
+  var APP_VERSION = "20260818a";
 
   var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 
@@ -226,6 +226,37 @@
     };
   }
 
+  // ---------- piano: retrocompatibilita' voci celle pasto ----------
+  // Fino alla v20260816d ogni cella pasto (colazione/pranzo/cena) era un
+  // array di soli ricettaId (stringhe). Da qui in poi e' un array di
+  // "voci" oggetto ({id, tipo:'ricetta', ricettaId} oppure
+  // {id, tipo:'nota', testo}), per poter affiancare alle ricette delle
+  // semplici note libere. Questa funzione converte al volo le vecchie
+  // stringhe in voci-ricetta, cosi' i piani gia' salvati restano validi.
+  function migraVociPasto(mealArray) {
+    if (!Array.isArray(mealArray)) return [];
+    return mealArray.map(function (voce) {
+      if (typeof voce === "string") {
+        return { id: uid("voce"), tipo: "ricetta", ricettaId: voce };
+      }
+      return voce;
+    });
+  }
+
+  function migraPiano(piano) {
+    var out = {};
+    if (!piano || typeof piano !== "object") return out;
+    Object.keys(piano).forEach(function (dateKey) {
+      var entry = piano[dateKey] || {};
+      out[dateKey] = {
+        colazione: migraVociPasto(entry.colazione),
+        pranzo: migraVociPasto(entry.pranzo),
+        cena: migraVociPasto(entry.cena)
+      };
+    });
+    return out;
+  }
+
   function normalizeSortMode(value, fallback) {
     return value === "categoria" ||
       value === "alpha-asc" ||
@@ -246,7 +277,7 @@
     if (Array.isArray(parsed.categorieRicette))
       state.categorieRicette = parsed.categorieRicette;
     if (parsed.piano && typeof parsed.piano === "object")
-      state.piano = parsed.piano;
+      state.piano = migraPiano(parsed.piano);
     if (typeof parsed.aggiornatoIl === "number")
       state.aggiornatoIl = parsed.aggiornatoIl;
 

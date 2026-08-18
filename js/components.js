@@ -133,14 +133,21 @@
     template: "#meal-cell-template",
     props: {
       pasto: { type: Object, required: true },
-      ricettaIds: { type: Array, required: true },
+      // ogni voce e' {id, tipo:'ricetta', ricettaId} oppure
+      // {id, tipo:'nota', testo} - vedi commento in js/feature-piano.js
+      voci: { type: Array, required: true },
       ricette: { type: Array, required: true },
       dragDropSupportato: { type: Boolean, default: false },
       // data ISO (YYYY-MM-DD) della cella: serve solo per identificarla nel
       // DOM (attributi data-piano-date/data-piano-meal sul contenitore
       // $refs.lista, vedi template) - SortableJS li legge in "onEnd" per
-      // sapere da dove a dove e' stata spostata una ricetta.
+      // sapere da dove a dove e' stata spostata una voce.
       dateKey: { type: String, default: "" }
+    },
+    data: function () {
+      // stato di editing inline del testo nota: al piu' una nota alla
+      // volta in modifica per singola cella
+      return { editingNoteId: null, editingNoteText: "" };
     },
     methods: {
       nomeRicetta: function (ricettaId) {
@@ -149,6 +156,29 @@
           if (r.id === ricettaId) found = r;
         });
         return found ? found.nome : "(ricetta eliminata)";
+      },
+      iniziaModificaNota: function (voce) {
+        this.editingNoteId = voce.id;
+        this.editingNoteText = voce.testo;
+        this.$nextTick(function () {
+          var input = this.$refs.notaInput;
+          if (input) {
+            if (Array.isArray(input)) input = input[0];
+            input.focus();
+            input.select();
+          }
+        }.bind(this));
+      },
+      confermaModificaNota: function (voce) {
+        if (this.editingNoteId !== voce.id) return;
+        var testo = this.editingNoteText.replace(/^\s+|\s+$/g, "");
+        this.editingNoteId = null;
+        if (testo && testo !== voce.testo) {
+          this.$emit("edit-nota", { itemId: voce.id, testo: testo });
+        }
+      },
+      annullaModificaNota: function () {
+        this.editingNoteId = null;
       }
     },
 
@@ -195,7 +225,7 @@
               from.appendChild(item);
             }
 
-            var ricettaId = item.getAttribute("data-ricetta-id");
+            var voceId = item.getAttribute("data-voce-id");
             var fromDateKey = from.getAttribute("data-piano-date");
             var fromMealKey = from.getAttribute("data-piano-meal");
             var toDateKey = evt.to.getAttribute("data-piano-date");
@@ -203,12 +233,12 @@
 
             if (fromDateKey === toDateKey && fromMealKey === toMealKey) return;
 
-            vm.spostaRicettaPianoTraCelle(
+            vm.spostaVoceTraCelle(
               fromDateKey,
               fromMealKey,
               toDateKey,
               toMealKey,
-              ricettaId
+              voceId
             );
           }
         });

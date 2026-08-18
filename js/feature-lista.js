@@ -13,7 +13,7 @@
         lista: [],
         sortMode: "categoria", // 'categoria' | 'alpha-asc' | 'alpha-desc'
         newItemNome: "",
-        newItemQuantita: 1,
+        newItemQuantita: null,
         newItemUnita: "",
         newItemSuggerimentiAperti: false,
         prodottiAperto: false
@@ -150,7 +150,7 @@
         if (!nome) return;
 
         var qty = parseFloat(this.newItemQuantita);
-        if (!qty || qty <= 0) qty = 1;
+        if (!qty || qty <= 0) qty = null;
 
         this.lista.push({
           id: DataModel.uid("item"),
@@ -163,7 +163,7 @@
         });
 
         this.newItemNome = "";
-        this.newItemQuantita = 1;
+        this.newItemQuantita = null;
         this.showToast("Aggiunto: " + nome);
 
         this.$nextTick(function () {

@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260816d" in fondo a css/js/manifest/icone.
+  locale: "?v=20260818a" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260816d" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20260818a" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260816d">
+<link rel="manifest" href="manifest.json?v=20260818a">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shopping Kart">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260816d">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260818a">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260816d">
+<meta name="msapplication-config" content="browserconfig.xml?v=20260818a">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260816d">
+<link rel="icon" href="icons/icon-192.png?v=20260818a">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260816d">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260818a">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260816d">
+<link rel="stylesheet" href="css/custom.css?v=20260818a">
 </head>
 <body>
 
@@ -202,9 +202,10 @@
         :clipboard="clipboard"
         :drag-drop-supportato="dragDropSupportato"
         @add-recipe="apriAggiungiRicettaCella(d, $event)"
-        @remove-recipe="rimuoviRicettaDaCella(d, $event.mealKey, $event.ricettaId)"
+        @remove-voce="rimuoviVoceDaCella(d, $event.mealKey, $event.itemId)"
         @edit-recipe="apriEditorRicettaDaId($event)"
-        @duplicate-recipe="duplicaRicettaInCella(d, $event.mealKey, $event.ricettaId)"
+        @duplicate-voce="duplicaVoceInCella(d, $event.mealKey, $event.itemId)"
+        @edit-nota="modificaTestoNota(d, $event.mealKey, $event.itemId, $event.testo)"
         @copy-day="copiaGiorno(d)"
         @paste-day="incollaGiorno(d)">
       </day-row>
@@ -217,14 +218,15 @@
       <div class="mb-3" v-for="pasto in pastiConfig" :key="pasto.key">
         <meal-cell
           :pasto="pasto"
-          :ricetta-ids="mealsForDate(oggiData)[pasto.key]"
+          :voci="mealsForDate(oggiData)[pasto.key]"
           :ricette="ricette"
           :drag-drop-supportato="dragDropSupportato"
           :date-key="todayKey"
           @add="apriAggiungiRicettaCella(oggiData, pasto.key)"
-          @remove="rimuoviRicettaDaCella(oggiData, pasto.key, $event)"
+          @remove="rimuoviVoceDaCella(oggiData, pasto.key, $event)"
           @edit="apriEditorRicettaDaId($event)"
-          @duplicate="duplicaRicettaInCella(oggiData, pasto.key, $event)">
+          @duplicate="duplicaVoceInCella(oggiData, pasto.key, $event)"
+          @edit-nota="modificaTestoNota(oggiData, pasto.key, $event.itemId, $event.testo)">
         </meal-cell>
       </div>
     </template>
@@ -455,7 +457,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
-              Aggiungi ricetta
+              Aggiungi al piano
               <small class="d-block text-muted" v-if="addRecipeModalContext">{{ pastoLabel(addRecipeModalContext.mealKey) }} — {{ giornoLabel(addRecipeModalContext.date) }}</small>
             </h5>
             <button type="button" class="close" @click="chiudiAggiungiRicettaCella" aria-label="Chiudi">
@@ -463,12 +465,29 @@
             </button>
           </div>
           <div class="modal-body">
+            <label class="small text-muted mb-1">Ricetta</label>
             <autocomplete-input
               :items="ricetteOrdinate"
               placeholder="Cerca o crea una ricetta…"
               @select="selezionaRicettaPerCella"
               @create="creaRicettaPerCella">
             </autocomplete-input>
+
+            <div class="text-center text-muted small my-2">oppure</div>
+
+            <label class="small text-muted mb-1">Nota libera</label>
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                v-model="nuovaNotaTesto"
+                placeholder="Es. Pizza con amici"
+                @keyup.enter="confermaNotaPerCella">
+              <div class="input-group-append">
+                <button type="button" class="btn btn-outline-primary" :disabled="!nuovaNotaTesto.replace(/^\s+|\s+$/g, '')" @click="confermaNotaPerCella">Aggiungi</button>
+              </div>
+            </div>
+            <p class="small text-muted mt-1 mb-0">Una nota è solo testo: non genera ingredienti nella lista della spesa e va persa se rimossa dal piano.</p>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="chiudiAggiungiRicettaCella">Chiudi</button>
@@ -827,14 +846,15 @@
         <div class="col-4 px-1" v-for="pasto in pasti" :key="pasto.key">
           <meal-cell
             :pasto="pasto"
-            :ricetta-ids="meals[pasto.key]"
+            :voci="meals[pasto.key]"
             :ricette="ricette"
             :drag-drop-supportato="dragDropSupportato"
             :date-key="dateKeyStr"
             @add="$emit('add-recipe', pasto.key)"
-            @remove="$emit('remove-recipe', { mealKey: pasto.key, ricettaId: $event })"
+            @remove="$emit('remove-voce', { mealKey: pasto.key, itemId: $event })"
             @edit="$emit('edit-recipe', $event)"
-            @duplicate="$emit('duplicate-recipe', { mealKey: pasto.key, ricettaId: $event })">
+            @duplicate="$emit('duplicate-voce', { mealKey: pasto.key, itemId: $event })"
+            @edit-nota="$emit('edit-nota', { mealKey: pasto.key, itemId: $event.itemId, testo: $event.testo })">
           </meal-cell>
         </div>
       </div>
@@ -849,43 +869,67 @@
     <div class="d-flex flex-column" ref="lista" :data-piano-date="dateKey" :data-piano-meal="pasto.key">
       <span
         class="badge badge-light d-flex justify-content-between align-items-center mb-1"
-        v-for="(rid, idx) in ricettaIds"
-        :key="idx + '-' + rid"
-        :data-ricetta-id="rid"
+        v-for="voce in voci"
+        :key="voce.id"
+        :data-voce-id="voce.id"
         :class="{ 'piano-draggable': dragDropSupportato }">
-        <button type="button" class="btn btn-link btn-sm p-0 piano-recipe-name text-dark mr-1" @click="$emit('edit', rid)" aria-label="Modifica ricetta">{{ nomeRicetta(rid) }}</button>
+
+        <button
+          v-if="voce.tipo === 'ricetta'"
+          type="button"
+          class="btn btn-link btn-sm p-0 piano-recipe-name text-dark mr-1 text-truncate"
+          @click="$emit('edit', voce.ricettaId)"
+          aria-label="Modifica ricetta">{{ nomeRicetta(voce.ricettaId) }}</button>
+
+        <input
+          v-else-if="editingNoteId === voce.id"
+          type="text"
+          class="form-control form-control-sm mr-1"
+          v-model="editingNoteText"
+          ref="notaInput"
+          @blur="confermaModificaNota(voce)"
+          @keyup.enter="confermaModificaNota(voce)"
+          @keyup.esc="annullaModificaNota">
+
+        <button
+          v-else
+          type="button"
+          class="btn btn-link btn-sm p-0 piano-recipe-name text-dark mr-1 font-italic text-truncate"
+          @click="iniziaModificaNota(voce)"
+          aria-label="Modifica nota">{{ voce.testo }}</button>
+
         <span class="flex-shrink-0">
-          <button type="button" class="btn btn-sm btn-link text-secondary p-0 mr-1 piano-badge-action" @click="$emit('duplicate', rid)" aria-label="Duplica ricetta">
+          <button type="button" class="btn btn-sm btn-link text-secondary p-0 mr-1 piano-badge-action" @click="$emit('duplicate', voce.id)" aria-label="Duplica">
             <mdi-icon name="content-copy" :size="12"></mdi-icon>
           </button>
-          <button type="button" class="btn btn-sm btn-link text-danger p-0 piano-badge-action" @click="$emit('remove', rid)" aria-label="Rimuovi ricetta">
+          <button type="button" class="btn btn-sm btn-link text-danger p-0 piano-badge-action" @click="$emit('remove', voce.id)" aria-label="Rimuovi">
             <mdi-icon name="close" :size="12"></mdi-icon>
           </button>
         </span>
       </span>
-      <button type="button" class="btn btn-sm btn-outline-secondary btn-block py-0" @click="$emit('add')" aria-label="Aggiungi ricetta">
+      <button type="button" class="btn btn-sm btn-outline-secondary btn-block py-0" @click="$emit('add')" aria-label="Aggiungi al piano">
         <mdi-icon name="plus" :size="14"></mdi-icon>
       </button>
     </div>
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260816d"></script>
+<script src="js/vue.min.js?v=20260818a"></script>
 <!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
-<script src="js/sortable.min.js?v=20260816d"></script>
-<script src="js/icons.js?v=20260816d"></script>
-<script src="js/data-model.js?v=20260816d"></script>
-<script src="js/components.js?v=20260816d"></script>
-<script src="js/feature-lista.js?v=20260816d"></script>
-<script src="js/feature-categorie.js?v=20260816d"></script>
-<script src="js/feature-prodotti.js?v=20260816d"></script>
-<script src="js/feature-ricette.js?v=20260816d"></script>
-<script src="js/feature-piano.js?v=20260816d"></script>
+<script src="js/sortable.min.js?v=20260818a"></script>
+<script src="js/icons.js?v=20260818a"></script>
+<script src="js/data-model.js?v=20260818a"></script>
+<script src="js/components.js?v=20260818a"></script>
+<script src="js/feature-lista.js?v=20260818a"></script>
+<script src="js/feature-categorie.js?v=20260818a"></script>
+<script src="js/feature-prodotti.js?v=20260818a"></script>
+<script src="js/feature-ricette.js?v=20260818a"></script>
+<script src="js/feature-piano.js?v=20260818a"></script>
 <!-- Account (login auth.example.invalid) e sincronizzazione cloud -->
-<script src="js/auth.js?v=20260816d"></script>
-<script src="js/sync.js?v=20260816d"></script>
-<script src="js/feature-account.js?v=20260816d"></script>
-<script src="js/app.js?v=20260816d"></script>
+<script src="js/auth.js?v=20260818a"></script>
+<script src="js/sync.js?v=20260818a"></script>
+<script src="js/feature-account.js?v=20260818a"></script>
+<script src="js/app.js?v=20260818a"></script>
 
 <!--
   Service Worker: rende l'app completamente offline anche a scheda/app

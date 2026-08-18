@@ -8,6 +8,14 @@
   vanno SEMPRE aggiunte con this.$set (limite di reattivita' di Vue 2 sugli
   oggetti semplici), le proprieta' gia' esistenti (colazione/pranzo/cena)
   si possono invece riassegnare/mutare direttamente.
+
+  Ogni cella pasto e' un array di "voci": {id, tipo:'ricetta', ricettaId}
+  oppure {id, tipo:'nota', testo}. Le note sono testo libero fine a se
+  stesso (niente ricetta/ingredienti dietro), usate per i pasti che non
+  vale la pena modellare come ricetta vera (es. "Pizza con amici fuori").
+  Non contribuiscono mai a "Genera lista" (vedi confermaGeneraLista). La
+  retrocompatibilita' con i vecchi piani (array di soli ricettaId stringa)
+  e' gestita in fase di caricamento, vedi migraPiano in js/data-model.js.
 */
 
 (function () {
@@ -38,6 +46,7 @@
         showAddRecipeModal: false,
         addRecipeModalContext: null, // {date, mealKey}
         pendingCellTarget: null, // {data, mealKey} - creazione ricetta da cella
+        nuovaNotaTesto: "",
 
         showGeneraListaModal: false,
         generaListaSelezione: {}, // dateKey -> {colazione,pranzo,cena}: bool
@@ -135,6 +144,7 @@
       chiudiAggiungiRicettaCella: function () {
         this.showAddRecipeModal = false;
         this.addRecipeModalContext = null;
+        this.nuovaNotaTesto = "";
       },
 
       selezionaRicettaPerCella: function (ricetta) {
@@ -156,51 +166,120 @@
         this.apriEditorRicettaNuova(nomeIniziale);
       },
 
+      confermaNotaPerCella: function () {
+        var testo = this.nuovaNotaTesto.replace(/^\s+|\s+$/g, "");
+        if (!testo) return;
+        this.aggiungiNotaACella(
+          this.addRecipeModalContext.date,
+          this.addRecipeModalContext.mealKey,
+          testo
+        );
+        this.chiudiAggiungiRicettaCella();
+      },
+
       // niente controllo di unicita': la stessa ricetta puo' comparire piu'
       // volte nella stessa cella (es. doppia porzione), vedi
-      // duplicaRicettaInCella piu' sotto
+      // duplicaVoceInCella piu' sotto
       assegnaRicettaACella: function (date, mealKey, ricettaId) {
         var entry = this.ensureDateEntry(date);
-        entry[mealKey].push(ricettaId);
+        entry[mealKey].push({
+          id: DataModel.uid("voce"),
+          tipo: "ricetta",
+          ricettaId: ricettaId
+        });
         this.showToast("Ricetta aggiunta al piano");
       },
 
-      rimuoviRicettaDaCella: function (date, mealKey, ricettaId) {
+      aggiungiNotaACella: function (date, mealKey, testo) {
+        var pulito = (testo || "").replace(/^\s+|\s+$/g, "");
+        if (!pulito) return;
+        var entry = this.ensureDateEntry(date);
+        entry[mealKey].push({
+          id: DataModel.uid("voce"),
+          tipo: "nota",
+          testo: pulito
+        });
+        this.showToast("Nota aggiunta al piano");
+      },
+
+      trovaVoceInCella: function (date, mealKey, itemId) {
+        var entry = this.piano[DataModel.isoDateKey(date)];
+        if (!entry) return null;
+        var trovata = null;
+        entry[mealKey].forEach(function (v) {
+          if (v.id === itemId) trovata = v;
+        });
+        return trovata;
+      },
+
+      rimuoviVoceDaCella: function (date, mealKey, itemId) {
         var entry = this.piano[DataModel.isoDateKey(date)];
         if (!entry) return;
-        var pos = entry[mealKey].indexOf(ricettaId);
+        var pos = -1;
+        entry[mealKey].forEach(function (v, i) {
+          if (v.id === itemId) pos = i;
+        });
         if (pos !== -1) entry[mealKey].splice(pos, 1);
       },
 
-      // duplica una ricetta gia' pianificata nella STESSA cella: aggiunge
-      // un altro riferimento alla STESSA ricetta (niente nuova entita' nel
-      // catalogo) cosi' una modifica alla ricetta si riflette su entrambe
-      // le voci pianificate
-      duplicaRicettaInCella: function (date, mealKey, ricettaId) {
-        var originale = this.ricettaById(ricettaId);
+      // duplica una voce (ricetta o nota) gia' pianificata nella STESSA
+      // cella: per le ricette aggiunge un altro riferimento alla STESSA
+      // ricetta (niente nuova entita' nel catalogo) cosi' una modifica alla
+      // ricetta si riflette su entrambe le voci pianificate; per le note
+      // copia semplicemente il testo in una voce indipendente
+      duplicaVoceInCella: function (date, mealKey, itemId) {
+        var entry = this.piano[DataModel.isoDateKey(date)];
+        if (!entry) return;
+        var originale = this.trovaVoceInCella(date, mealKey, itemId);
         if (!originale) return;
-        this.assegnaRicettaACella(date, mealKey, ricettaId);
-        this.showToast("Ricetta duplicata: " + originale.nome);
+
+        if (originale.tipo === "nota") {
+          entry[mealKey].push({
+            id: DataModel.uid("voce"),
+            tipo: "nota",
+            testo: originale.testo
+          });
+          this.showToast("Nota duplicata");
+        } else {
+          var ricetta = this.ricettaById(originale.ricettaId);
+          this.assegnaRicettaACella(date, mealKey, originale.ricettaId);
+          if (ricetta) this.showToast("Ricetta duplicata: " + ricetta.nome);
+        }
+      },
+
+      modificaTestoNota: function (date, mealKey, itemId, nuovoTesto) {
+        var voce = this.trovaVoceInCella(date, mealKey, itemId);
+        var pulito = (nuovoTesto || "").replace(/^\s+|\s+$/g, "");
+        if (!voce || voce.tipo !== "nota" || !pulito) return;
+        voce.testo = pulito;
       },
 
       // ---------- drag & drop (solo se dragDropSupportato) ----------
       // Chiamato da SortableJS (vedi js/components.js, meal-cell, "onEnd")
-      // quando una ricetta viene rilasciata su una cella diversa da quella
-      // di partenza. Riceve le chiavi (data ISO + pasto) direttamente dagli
-      // attributi data-piano-date/data-piano-meal sul DOM, niente Date da
-      // ricostruire.
-      spostaRicettaPianoTraCelle: function (fromDateKey, fromMealKey, toDateKey, toMealKey, ricettaId) {
+      // quando una voce (ricetta o nota) viene rilasciata su una cella
+      // diversa da quella di partenza. Riceve le chiavi (data ISO + pasto)
+      // direttamente dagli attributi data-piano-date/data-piano-meal sul
+      // DOM, niente Date da ricostruire.
+      spostaVoceTraCelle: function (fromDateKey, fromMealKey, toDateKey, toMealKey, itemId) {
         var origineEntry = this.piano[fromDateKey];
+        var voce = null;
         if (origineEntry) {
-          var pos = origineEntry[fromMealKey].indexOf(ricettaId);
-          if (pos !== -1) origineEntry[fromMealKey].splice(pos, 1);
+          var pos = -1;
+          origineEntry[fromMealKey].forEach(function (v, i) {
+            if (v.id === itemId) pos = i;
+          });
+          if (pos !== -1) {
+            voce = origineEntry[fromMealKey][pos];
+            origineEntry[fromMealKey].splice(pos, 1);
+          }
         }
+        if (!voce) return;
 
         if (!this.piano[toDateKey]) {
           this.$set(this.piano, toDateKey, { colazione: [], pranzo: [], cena: [] });
         }
         var destEntry = this.piano[toDateKey];
-        destEntry[toMealKey].push(ricettaId);
+        destEntry[toMealKey].push(voce);
       },
 
       // ---------- copia/incolla ----------
@@ -332,10 +411,11 @@
           if (!entry) return;
           DataModel.PASTI.forEach(function (pasto) {
             if (!selGiorno[pasto.key]) return;
-            entry[pasto.key].forEach(function (ricettaId) {
+            entry[pasto.key].forEach(function (voce) {
+              if (voce.tipo !== "ricetta") return; // le note non hanno ingredienti
               var ricetta = null;
               self.ricette.forEach(function (r) {
-                if (r.id === ricettaId) ricetta = r;
+                if (r.id === voce.ricettaId) ricetta = r;
               });
               if (!ricetta) return;
               ricetta.ingredienti.forEach(function (ing) {
