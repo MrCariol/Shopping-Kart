@@ -196,22 +196,6 @@
         this.ricettaDraft = null;
       },
 
-      // clona una ricetta (nuovo id, ingredienti/categorie copiati): usata
-      // da FeaturePiano.duplicaRicettaInCella per duplicare una ricetta
-      // gia' pianificata nella stessa cella
-      duplicaRicetta: function (ricetta) {
-        var clone = {
-          id: DataModel.uid("ric"),
-          nome: ricetta.nome + " (copia)",
-          categorieIds: ricetta.categorieIds.slice(),
-          ingredienti: ricetta.ingredienti.map(function (ing) {
-            return { prodottoId: ing.prodottoId, quantita: ing.quantita };
-          })
-        };
-        this.ricette.push(clone);
-        return clone;
-      },
-
       // ---------- eliminazione ----------
       deleteRicetta: function (ricetta) {
         var ok = window.confirm(
@@ -233,9 +217,12 @@
         var piano = this.piano;
         Object.keys(piano).forEach(function (dataKey) {
           DataModel.PASTI.forEach(function (pasto) {
-            var arr = piano[dataKey][pasto.key];
-            var pos = arr.indexOf(ricetta.id);
-            if (pos !== -1) arr.splice(pos, 1);
+            var giorno = piano[dataKey];
+            // filter, non indexOf+splice: la stessa ricetta puo' comparire
+            // piu' volte nella stessa cella (vedi FeaturePiano.duplicaRicettaInCella)
+            giorno[pasto.key] = giorno[pasto.key].filter(function (id) {
+              return id !== ricetta.id;
+            });
           });
         });
       }

@@ -19,6 +19,9 @@
                         arbitrari, solo position-fixed generico)
   - .autocomplete-dropdown -> menu suggerimenti sotto l'input (componente
                         autocomplete-input), niente plugin JS/Popper
+  - .autocomplete-dropdown-up -> stessa cosa ma verso l'alto, per la barra
+                        aggiungi articolo (vista Lista) che sta in fondo
+                        allo schermo
   - .swatch-btn      -> pulsante colore circolare per la palette a swatch
                         delle categorie ricetta
   - .unit-select     -> larghezza massima per le select unita' di misura
@@ -73,6 +76,18 @@
   z-index: 1055;
   max-height: 220px;
   overflow-y: auto;
+}
+
+/*
+  .autocomplete-dropdown-up -> variante di .autocomplete-dropdown che apre
+  il menu verso l'alto invece che verso il basso: usata dalla barra
+  aggiungi articolo (vista Lista), che sta nella fixed-bottom in fondo allo
+  schermo, dove aprire verso il basso lascerebbe il menu fuori dallo
+  schermo.
+*/
+.autocomplete-dropdown-up {
+  top: auto;
+  bottom: 100%;
 }
 
 /*

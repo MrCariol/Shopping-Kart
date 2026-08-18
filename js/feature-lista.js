@@ -15,6 +15,7 @@
         newItemNome: "",
         newItemQuantita: 1,
         newItemUnita: "",
+        newItemSuggerimentiAperti: false,
         prodottiAperto: false
       };
     },
@@ -127,6 +128,19 @@
         return groups.filter(function (g) {
           return g.items.length > 0;
         });
+      },
+
+      // suggerimenti per la tendina sotto la barra aggiungi articolo:
+      // stesso pool di prodottiDaAggiungere (niente duplicati gia' in
+      // lista), filtrato per corrispondenza parziale col testo digitato
+      newItemSuggerimenti: function () {
+        var q = this.newItemNome.replace(/^\s+|\s+$/g, "").toLowerCase();
+        if (!q) return [];
+        return this.prodottiDaAggiungere
+          .filter(function (p) {
+            return p.nome.toLowerCase().indexOf(q) !== -1;
+          })
+          .slice(0, 8);
       }
     },
 
@@ -151,6 +165,21 @@
         this.newItemNome = "";
         this.newItemQuantita = 1;
         this.showToast("Aggiunto: " + nome);
+
+        this.$nextTick(function () {
+          var input = document.getElementById("new-item-input");
+          if (input) input.focus();
+        });
+      },
+
+      // scelta di un suggerimento dalla tendina della barra aggiungi
+      // articolo: stesso comportamento del bottone "+" nell'accordion
+      // Prodotti (aggiungiProdottoALista), cosi' i due punti di ingresso
+      // restano coerenti
+      selezionaSuggerimentoNuovoArticolo: function (prodotto) {
+        this.aggiungiProdottoALista(prodotto);
+        this.newItemNome = "";
+        this.newItemSuggerimentiAperti = false;
 
         this.$nextTick(function () {
           var input = document.getElementById("new-item-input");

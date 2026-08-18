@@ -156,11 +156,12 @@
         this.apriEditorRicettaNuova(nomeIniziale);
       },
 
+      // niente controllo di unicita': la stessa ricetta puo' comparire piu'
+      // volte nella stessa cella (es. doppia porzione), vedi
+      // duplicaRicettaInCella piu' sotto
       assegnaRicettaACella: function (date, mealKey, ricettaId) {
         var entry = this.ensureDateEntry(date);
-        if (entry[mealKey].indexOf(ricettaId) === -1) {
-          entry[mealKey].push(ricettaId);
-        }
+        entry[mealKey].push(ricettaId);
         this.showToast("Ricetta aggiunta al piano");
       },
 
@@ -171,15 +172,15 @@
         if (pos !== -1) entry[mealKey].splice(pos, 1);
       },
 
-      // duplica una ricetta gia' pianificata nella STESSA cella: clona la
-      // ricetta (FeatureRicette.duplicaRicetta) e assegna il clone alla
-      // cella di partenza, senza chiedere nulla all'utente
+      // duplica una ricetta gia' pianificata nella STESSA cella: aggiunge
+      // un altro riferimento alla STESSA ricetta (niente nuova entita' nel
+      // catalogo) cosi' una modifica alla ricetta si riflette su entrambe
+      // le voci pianificate
       duplicaRicettaInCella: function (date, mealKey, ricettaId) {
         var originale = this.ricettaById(ricettaId);
         if (!originale) return;
-        var clone = this.duplicaRicetta(originale);
-        this.assegnaRicettaACella(date, mealKey, clone.id);
-        this.showToast("Ricetta duplicata: " + clone.nome);
+        this.assegnaRicettaACella(date, mealKey, ricettaId);
+        this.showToast("Ricetta duplicata: " + originale.nome);
       },
 
       // ---------- drag & drop (solo se dragDropSupportato) ----------
@@ -199,9 +200,7 @@
           this.$set(this.piano, toDateKey, { colazione: [], pranzo: [], cena: [] });
         }
         var destEntry = this.piano[toDateKey];
-        if (destEntry[toMealKey].indexOf(ricettaId) === -1) {
-          destEntry[toMealKey].push(ricettaId);
-        }
+        destEntry[toMealKey].push(ricettaId);
       },
 
       // ---------- copia/incolla ----------
