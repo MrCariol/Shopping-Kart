@@ -30,7 +30,7 @@
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20260818a";
+  var APP_VERSION = "20260818b";
 
   var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 

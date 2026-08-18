@@ -142,12 +142,21 @@
       // DOM (attributi data-piano-date/data-piano-meal sul contenitore
       // $refs.lista, vedi template) - SortableJS li legge in "onEnd" per
       // sapere da dove a dove e' stata spostata una voce.
-      dateKey: { type: String, default: "" }
+      dateKey: { type: String, default: "" },
+      // per decidere se mostrare il bottone "incolla sezione" (visibile se
+      // negli appunti c'e' copiato un pasto, qualunque sia la sezione o il
+      // giorno di origine)
+      clipboard: { type: Object, default: null }
     },
     data: function () {
       // stato di editing inline del testo nota: al piu' una nota alla
       // volta in modifica per singola cella
       return { editingNoteId: null, editingNoteText: "" };
+    },
+    computed: {
+      canPastePasto: function () {
+        return !!this.clipboard && this.clipboard.type === "pasto";
+      }
     },
     methods: {
       nomeRicetta: function (ricettaId) {

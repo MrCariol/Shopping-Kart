@@ -1,3 +1,6 @@
 .idea
 .claude
 *.ini
+
+# contiene le credenziali FTP in chiaro, vedi deploy-ftp.ps1
+deploy-ftp.ps1

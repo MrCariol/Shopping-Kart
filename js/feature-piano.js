@@ -283,6 +283,19 @@
       },
 
       // ---------- copia/incolla ----------
+      // Le voci sono oggetti (non piu' semplici stringhe ricettaId): un
+      // clone profondo e' indispensabile sia alla copia (per scollegare gli
+      // appunti dai dati live: modificare una nota dopo averla copiata non
+      // deve toccare quanto e' negli appunti) sia ad OGNI incolla (per
+      // scollegare ciascuna destinazione dagli appunti e dalle altre
+      // destinazioni gia' incollate: senza clone, incollare piu' volte lo
+      // stesso contenuto farebbe condividere le stesse voci-oggetto tra
+      // giorni diversi, e modificare il testo di una nota in un giorno la
+      // cambierebbe silenziosamente anche nell'altro).
+      clonaVoci: function (vociArray) {
+        return JSON.parse(JSON.stringify(vociArray || []));
+      },
+
       copiaGiorno: function (date) {
         var entry = this.mealsForDate(date);
         this.clipboard = {
@@ -304,9 +317,9 @@
           if (!ok) return;
         }
         var data = this.clipboard.data;
-        entry.colazione = data.colazione.slice();
-        entry.pranzo = data.pranzo.slice();
-        entry.cena = data.cena.slice();
+        entry.colazione = this.clonaVoci(data.colazione);
+        entry.pranzo = this.clonaVoci(data.pranzo);
+        entry.cena = this.clonaVoci(data.cena);
         this.showToast("Piano incollato");
       },
 
@@ -315,9 +328,9 @@
         var days = this.weekDates.map(function (d) {
           var entry = self.mealsForDate(d);
           return {
-            colazione: entry.colazione.slice(),
-            pranzo: entry.pranzo.slice(),
-            cena: entry.cena.slice()
+            colazione: self.clonaVoci(entry.colazione),
+            pranzo: self.clonaVoci(entry.pranzo),
+            cena: self.clonaVoci(entry.cena)
           };
         });
         this.clipboard = { type: "week", data: days };
@@ -342,11 +355,35 @@
         this.weekDates.forEach(function (d, idx) {
           var entry = self.ensureDateEntry(d);
           var source = self.clipboard.data[idx];
-          entry.colazione = source.colazione.slice();
-          entry.pranzo = source.pranzo.slice();
-          entry.cena = source.cena.slice();
+          entry.colazione = self.clonaVoci(source.colazione);
+          entry.pranzo = self.clonaVoci(source.pranzo);
+          entry.cena = self.clonaVoci(source.cena);
         });
         this.showToast("Settimana incollata");
+      },
+
+      // copia/incolla di una singola sezione pasto (Colazione/Pranzo/Cena):
+      // gli appunti non sono vincolati al tipo di pasto di origine, si
+      // possono incollare in QUALSIASI sezione (anche diversa da quella
+      // copiata, es. Colazione -> Cena), dato che il contenuto (array di
+      // voci) ha la stessa forma indipendentemente dal pasto
+      copiaPasto: function (date, mealKey) {
+        var voci = this.mealsForDate(date)[mealKey];
+        this.clipboard = { type: "pasto", data: this.clonaVoci(voci) };
+        this.showToast("Sezione copiata negli appunti");
+      },
+
+      incollaPasto: function (date, mealKey) {
+        if (!this.clipboard || this.clipboard.type !== "pasto") return;
+        var entry = this.ensureDateEntry(date);
+        if (entry[mealKey].length) {
+          var ok = window.confirm(
+            "La sezione selezionata ha già un piano: sovrascriverla con quella copiata?"
+          );
+          if (!ok) return;
+        }
+        entry[mealKey] = this.clonaVoci(this.clipboard.data);
+        this.showToast("Sezione incollata");
       },
 
       // ---------- genera lista della spesa dalla pianificazione ----------

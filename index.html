@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260818a" in fondo a css/js/manifest/icone.
+  locale: "?v=20260818b" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260818a" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20260818b" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260818a">
+<link rel="manifest" href="manifest.json?v=20260818b">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shopping Kart">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260818a">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260818b">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260818a">
+<meta name="msapplication-config" content="browserconfig.xml?v=20260818b">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260818a">
+<link rel="icon" href="icons/icon-192.png?v=20260818b">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260818a">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260818b">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260818a">
+<link rel="stylesheet" href="css/custom.css?v=20260818b">
 </head>
 <body>
 
@@ -207,7 +207,9 @@
         @duplicate-voce="duplicaVoceInCella(d, $event.mealKey, $event.itemId)"
         @edit-nota="modificaTestoNota(d, $event.mealKey, $event.itemId, $event.testo)"
         @copy-day="copiaGiorno(d)"
-        @paste-day="incollaGiorno(d)">
+        @paste-day="incollaGiorno(d)"
+        @copy-pasto="copiaPasto(d, $event)"
+        @paste-pasto="incollaPasto(d, $event)">
       </day-row>
     </template>
 
@@ -222,11 +224,14 @@
           :ricette="ricette"
           :drag-drop-supportato="dragDropSupportato"
           :date-key="todayKey"
+          :clipboard="clipboard"
           @add="apriAggiungiRicettaCella(oggiData, pasto.key)"
           @remove="rimuoviVoceDaCella(oggiData, pasto.key, $event)"
           @edit="apriEditorRicettaDaId($event)"
           @duplicate="duplicaVoceInCella(oggiData, pasto.key, $event)"
-          @edit-nota="modificaTestoNota(oggiData, pasto.key, $event.itemId, $event.testo)">
+          @edit-nota="modificaTestoNota(oggiData, pasto.key, $event.itemId, $event.testo)"
+          @copy-pasto="copiaPasto(oggiData, pasto.key)"
+          @paste-pasto="incollaPasto(oggiData, pasto.key)">
         </meal-cell>
       </div>
     </template>
@@ -850,11 +855,14 @@
             :ricette="ricette"
             :drag-drop-supportato="dragDropSupportato"
             :date-key="dateKeyStr"
+            :clipboard="clipboard"
             @add="$emit('add-recipe', pasto.key)"
             @remove="$emit('remove-voce', { mealKey: pasto.key, itemId: $event })"
             @edit="$emit('edit-recipe', $event)"
             @duplicate="$emit('duplicate-voce', { mealKey: pasto.key, itemId: $event })"
-            @edit-nota="$emit('edit-nota', { mealKey: pasto.key, itemId: $event.itemId, testo: $event.testo })">
+            @edit-nota="$emit('edit-nota', { mealKey: pasto.key, itemId: $event.itemId, testo: $event.testo })"
+            @copy-pasto="$emit('copy-pasto', pasto.key)"
+            @paste-pasto="$emit('paste-pasto', pasto.key)">
           </meal-cell>
         </div>
       </div>
@@ -865,7 +873,17 @@
 <!-- ===================== TEMPLATE: CELLA PASTO (riusata da Piano settimanale e da Oggi) ===================== -->
 <script type="text/x-template" id="meal-cell-template">
   <div class="p-1 rounded h-100" :class="pasto.bgClass">
-    <div class="small font-weight-bold text-truncate mb-1">{{ pasto.label }}</div>
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <span class="small font-weight-bold text-truncate">{{ pasto.label }}</span>
+      <span class="flex-shrink-0">
+        <button type="button" class="btn btn-sm py-0 px-1" @click="$emit('copy-pasto')" aria-label="Copia sezione">
+          <mdi-icon name="content-copy" :size="12"></mdi-icon>
+        </button>
+        <button type="button" class="btn btn-sm py-0 px-1" v-if="canPastePasto" @click="$emit('paste-pasto')" aria-label="Incolla sezione">
+          <mdi-icon name="content-paste" :size="12"></mdi-icon>
+        </button>
+      </span>
+    </div>
     <div class="d-flex flex-column" ref="lista" :data-piano-date="dateKey" :data-piano-meal="pasto.key">
       <span
         class="badge badge-light d-flex justify-content-between align-items-center mb-1"
@@ -914,22 +932,22 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260818a"></script>
+<script src="js/vue.min.js?v=20260818b"></script>
 <!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
-<script src="js/sortable.min.js?v=20260818a"></script>
-<script src="js/icons.js?v=20260818a"></script>
-<script src="js/data-model.js?v=20260818a"></script>
-<script src="js/components.js?v=20260818a"></script>
-<script src="js/feature-lista.js?v=20260818a"></script>
-<script src="js/feature-categorie.js?v=20260818a"></script>
-<script src="js/feature-prodotti.js?v=20260818a"></script>
-<script src="js/feature-ricette.js?v=20260818a"></script>
-<script src="js/feature-piano.js?v=20260818a"></script>
+<script src="js/sortable.min.js?v=20260818b"></script>
+<script src="js/icons.js?v=20260818b"></script>
+<script src="js/data-model.js?v=20260818b"></script>
+<script src="js/components.js?v=20260818b"></script>
+<script src="js/feature-lista.js?v=20260818b"></script>
+<script src="js/feature-categorie.js?v=20260818b"></script>
+<script src="js/feature-prodotti.js?v=20260818b"></script>
+<script src="js/feature-ricette.js?v=20260818b"></script>
+<script src="js/feature-piano.js?v=20260818b"></script>
 <!-- Account (login auth.example.invalid) e sincronizzazione cloud -->
-<script src="js/auth.js?v=20260818a"></script>
-<script src="js/sync.js?v=20260818a"></script>
-<script src="js/feature-account.js?v=20260818a"></script>
-<script src="js/app.js?v=20260818a"></script>
+<script src="js/auth.js?v=20260818b"></script>
+<script src="js/sync.js?v=20260818b"></script>
+<script src="js/feature-account.js?v=20260818b"></script>
+<script src="js/app.js?v=20260818b"></script>
 
 <!--
   Service Worker: rende l'app completamente offline anche a scheda/app
