@@ -2,5 +2,7 @@
 .claude
 *.ini
 
-# contiene le credenziali FTP in chiaro, vedi deploy-ftp.ps1
-deploy-ftp.ps1
+# credenziali FTP in chiaro per deploy-ftp.ps1, vedi .env.example
+.env
+.env.*
+*.ps1
