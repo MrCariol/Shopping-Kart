@@ -8,7 +8,10 @@
   Vue 2, verificato prima di scegliere questo approccio).
 
   Persistenza (watch + DataModel.persist) e toast sono trasversali a tutte
-  le viste: restano qui, non in una singola feature.
+  le viste: restano qui, non in una singola feature. Lo stesso watch di
+  persistenza innesca anche la sync cloud automatica dopo ogni modifica
+  (persistHandler -> Sync.scheduleAutoSync, vedi commento in testa a
+  js/sync.js per il quadro completo dei tre inneschi).
 */
 
 (function () {
@@ -216,8 +219,46 @@
   mergeUnique(rootMethods, FeaturePiano.methods, "FeaturePiano.methods");
   mergeUnique(rootMethods, FeatureAccount.methods, "FeatureAccount.methods");
 
+  // sync automatica dopo ogni modifica locale: la stessa istanza gia'
+  // usata per salvare su localStorage (vedi commento in testa a
+  // js/sync.js sui tre inneschi della sync automatica). scheduleAutoSync
+  // fa gia' da sola niente se l'utente non e' loggato o il browser non ha
+  // fetch, quindi nessun controllo extra qui.
+  //
+  // this._hydrating (vedi created() sotto): il caricamento iniziale da
+  // DataModel.load() assegna lista/categorie/... con gli stessi identici
+  // valori appena letti dallo storage - non e' una modifica dell'utente,
+  // e' solo idratazione dei dati reattivi. Senza questa guardia, il watch
+  // (che non distingue le due cose) richiamerebbe qui persistAll(), che
+  // ritimbrerebbe subito aggiornatoIl ad "adesso" sovrascrivendo il vero
+  // valore caricato (assegnato subito dopo in created()) - falsando cosi'
+  // il confronto L/S della sync ad ogni singola apertura dell'app, oltre a
+  // far partire una sync automatica ridondante 2s dopo quella gia' avviata
+  // da created().
   function persistHandler() {
+    if (this._hydrating) return;
     this.persistAll();
+    Sync.scheduleAutoSync(this);
+  }
+
+  // secondo/terzo innesco (il primo e' persistHandler sopra): ricontrolla
+  // il server, in silenzio, quando l'app torna in primo piano e a
+  // intervalli regolari mentre resta visibile - cosi' le modifiche fatte
+  // da un altro dispositivo arrivano senza dover toccare "Sincronizza
+  // ora". Stesso pattern (visibilitychange + focus) gia' usato per il
+  // controllo aggiornamenti del Service Worker, in fondo a index.html.
+  var SYNC_POLL_INTERVAL_MS = 30000;
+
+  function registerAutoSyncTriggers(vueApp) {
+    function syncIfVisible() {
+      if (vueApp.loggedIn && document.visibilityState === "visible") {
+        Sync.run(vueApp, { silent: true });
+      }
+    }
+
+    document.addEventListener("visibilitychange", syncIfVisible);
+    window.addEventListener("focus", syncIfVisible);
+    setInterval(syncIfVisible, SYNC_POLL_INTERVAL_MS);
   }
 
   var rootWatch = {
@@ -251,6 +292,13 @@
       // login, ma prima che consumeCallbackToken() girasse: ricontrolla
       this.loggedIn = Auth.isLoggedIn();
 
+      // vedi commento su persistHandler/this._hydrating sopra: nessuna
+      // delle assegnazioni qui sotto deve essere trattata come una
+      // modifica dell'utente. Proprieta' non reattiva (non dichiarata in
+      // data()), apposta: e' solo un flag interno, non serve renderla
+      // osservabile da Vue.
+      this._hydrating = true;
+
       var state = DataModel.load();
       this.lista = state.lista;
       this.categorie = state.categorie;
@@ -267,6 +315,14 @@
       if (this.loggedIn) {
         Sync.run(this, { silent: true });
       }
+      registerAutoSyncTriggers(this);
+
+      // si azzera dopo il giro di watch innescato dalle assegnazioni qui
+      // sopra (che gira comunque in un microtask successivo), non subito:
+      // vedi commento su persistHandler
+      this.$nextTick(function () {
+        this._hydrating = false;
+      }.bind(this));
     }
   });
 })();

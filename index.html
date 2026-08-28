@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260818b" in fondo a css/js/manifest/icone.
+  locale: "?v=20260828a" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260818b" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20260828a" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260818b">
+<link rel="manifest" href="manifest.json?v=20260828a">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shopping Kart">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260818b">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260828a">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260818b">
+<meta name="msapplication-config" content="browserconfig.xml?v=20260828a">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260818b">
+<link rel="icon" href="icons/icon-192.png?v=20260828a">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260818b">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260828a">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260818b">
+<link rel="stylesheet" href="css/custom.css?v=20260828a">
 </head>
 <body>
 
@@ -50,8 +50,8 @@
   <!-- ===================== TESTATA ===================== -->
   <nav class="navbar navbar-dark bg-dark py-2">
     <span class="navbar-brand mb-0 h5"><mdi-icon name="cart-outline" :size="22" class="mr-1"></mdi-icon>Shopping Kart</span>
-    <button type="button" class="btn btn-outline-light btn-sm" v-if="loggedIn" @click="syncNow" aria-label="Sincronizza ora">
-      <mdi-icon name="sync" :size="18"></mdi-icon>
+    <button type="button" class="btn btn-outline-light btn-sm" v-if="loggedIn" @click="syncNow" :disabled="syncing" aria-label="Sincronizza ora">
+      <mdi-icon name="sync" :size="18" :class="{ 'icon-spin': syncing }"></mdi-icon>
     </button>
   </nav>
 
@@ -345,7 +345,9 @@
           </p>
           <p class="small text-muted mb-2">Ultima sincronizzazione: {{ lastSyncLabel }}</p>
           <div class="d-flex flex-column">
-            <button type="button" class="btn btn-outline-primary mb-2" @click="syncNow">Sincronizza ora</button>
+            <button type="button" class="btn btn-outline-primary mb-2" @click="syncNow" :disabled="syncing">
+              <mdi-icon name="sync" :size="18" class="mr-1" :class="{ 'icon-spin': syncing }"></mdi-icon>Sincronizza ora
+            </button>
             <button type="button" class="btn btn-outline-secondary" @click="logout">Esci</button>
           </div>
         </template>
@@ -932,22 +934,22 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260818b"></script>
+<script src="js/vue.min.js?v=20260828a"></script>
 <!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
-<script src="js/sortable.min.js?v=20260818b"></script>
-<script src="js/icons.js?v=20260818b"></script>
-<script src="js/data-model.js?v=20260818b"></script>
-<script src="js/components.js?v=20260818b"></script>
-<script src="js/feature-lista.js?v=20260818b"></script>
-<script src="js/feature-categorie.js?v=20260818b"></script>
-<script src="js/feature-prodotti.js?v=20260818b"></script>
-<script src="js/feature-ricette.js?v=20260818b"></script>
-<script src="js/feature-piano.js?v=20260818b"></script>
+<script src="js/sortable.min.js?v=20260828a"></script>
+<script src="js/icons.js?v=20260828a"></script>
+<script src="js/data-model.js?v=20260828a"></script>
+<script src="js/components.js?v=20260828a"></script>
+<script src="js/feature-lista.js?v=20260828a"></script>
+<script src="js/feature-categorie.js?v=20260828a"></script>
+<script src="js/feature-prodotti.js?v=20260828a"></script>
+<script src="js/feature-ricette.js?v=20260828a"></script>
+<script src="js/feature-piano.js?v=20260828a"></script>
 <!-- Account (login auth.example.invalid) e sincronizzazione cloud -->
-<script src="js/auth.js?v=20260818b"></script>
-<script src="js/sync.js?v=20260818b"></script>
-<script src="js/feature-account.js?v=20260818b"></script>
-<script src="js/app.js?v=20260818b"></script>
+<script src="js/auth.js?v=20260828a"></script>
+<script src="js/sync.js?v=20260828a"></script>
+<script src="js/feature-account.js?v=20260828a"></script>
+<script src="js/app.js?v=20260828a"></script>
 
 <!--
   Service Worker: rende l'app completamente offline anche a scheda/app

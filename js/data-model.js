@@ -30,7 +30,7 @@
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20260818b";
+  var APP_VERSION = "20260828a";
 
   var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 
@@ -304,13 +304,16 @@
     return state;
   }
 
-  function persist(payload) {
+  function persist(payload, timestamp) {
     // timbro "ultima modifica locale" ad ogni salvataggio: e' quello che
     // la sync cloud usa per capire se questo dispositivo ha dati piu'
     // recenti di quelli sul server (vedi js/sync.js). Aggiornato anche
     // sull'oggetto passato, cosi' resta coerente in memoria oltre che
-    // su storage.
-    payload.aggiornatoIl = Date.now();
+    // su storage. "timestamp" e' opzionale: usato solo da js/sync.js
+    // (adoptRemote) per riallineare aggiornatoIl al lastModified del
+    // server invece che ad "adesso", vedi commento li'.
+    payload.aggiornatoIl =
+      typeof timestamp === "number" ? timestamp : Date.now();
     writeJSON(STORAGE_KEY_V2, {
       lista: payload.lista,
       categorie: payload.categorie,

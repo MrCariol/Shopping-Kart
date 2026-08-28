@@ -63,6 +63,23 @@
 }
 
 /*
+  .icon-spin -> rotazione continua dell'icona di sync (navbar e
+  Impostazioni) mentre una sincronizzazione e' in corso (vueApp.syncing,
+  vedi js/sync.js), al posto di un messaggio toast "in corso" che con la
+  sync automatica ad ogni modifica comparirebbe troppo spesso. Bootstrap 4
+  non ha un'utility di animazione per questo.
+*/
+@keyframes icon-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.icon-spin {
+  display: inline-block;
+  animation: icon-spin 1s linear infinite;
+}
+
+/*
   .autocomplete-dropdown -> posizionamento del menu suggerimenti sotto
   l'input (componente autocomplete-input, piano alimentare/ricette).
   Bootstrap 4 non offre positioning per dropdown "liberi" senza il plugin

@@ -19,10 +19,65 @@
 
   Nessuna dipendenza da Vue: le funzioni ricevono l'istanza root come
   parametro e leggono/scrivono i suoi campi reattivi direttamente.
+
+  Sync automatica (niente piu' bottone "Sincronizza ora" come unico modo
+  per aggiornare): tre inneschi, nessuno dei quali richiede un'azione
+  esplicita dell'utente oltre a usare l'app normalmente.
+  - scheduleAutoSync(): richiamata dal watch di persistenza in js/app.js
+    dopo OGNI modifica locale (lista/ricette/piano/...), con un debounce
+    di AUTO_SYNC_DEBOUNCE_MS cosi' una raffica di modifiche ravvicinate
+    (es. editing di una ricetta con piu' ingredienti) produce una sola
+    chiamata di rete invece di una per campo.
+  - visibilitychange/focus (registrati in js/app.js, stesso pattern gia'
+    usato per il controllo aggiornamenti del Service Worker) -> ricontrolla
+    il server quando l'utente torna sull'app, cosi' le modifiche fatte nel
+    frattempo da un altro dispositivo arrivano subito.
+  - un giro periodico (SYNC_POLL_INTERVAL_MS, in js/app.js) mentre l'app
+    resta aperta e visibile, per il caso in cui un altro dispositivo scriva
+    mentre questo resta in primo piano senza altre interazioni.
+  Tutti e tre passano per run(), sempre con {silent:true}: l'utente non
+  vede toast per queste sync di sottofondo, solo l'icona che ruota
+  (vueApp.syncing, vedi beginSync/endSync sotto) mentre una chiamata e' in
+  volo. "Sincronizza ora" resta disponibile per un tentativo esplicito
+  (silent:false -> mostra il risultato in un toast).
+
+  vueApp.syncing e un'eventuale richiesta arrivata mentre e' gia' true
+  (pendingSync) evitano di accavallare piu' fetch quando i tre inneschi
+  scattano vicini nel tempo: la richiesta in coda parte non appena quella
+  in corso finisce, e "vince" la non-silenziosa se una delle due lo era
+  (cosi' un click su "Sincronizza ora" arrivato durante una sync di
+  sfondo ottiene comunque il suo toast di risultato).
 */
 
 (function () {
   "use strict";
+
+  var pendingSync = null; // null oppure {silent: bool}
+
+  function beginSync(vueApp) {
+    vueApp.syncing = true;
+  }
+
+  function endSync(vueApp) {
+    vueApp.syncing = false;
+    if (pendingSync) {
+      var retry = pendingSync;
+      pendingSync = null;
+      run(vueApp, retry);
+    }
+  }
+
+  var autoSyncTimer = null;
+  var AUTO_SYNC_DEBOUNCE_MS = 2000;
+
+  function scheduleAutoSync(vueApp) {
+    if (!window.fetch || !Auth.isLoggedIn()) return;
+    if (autoSyncTimer) clearTimeout(autoSyncTimer);
+    autoSyncTimer = setTimeout(function () {
+      autoSyncTimer = null;
+      run(vueApp, { silent: true });
+    }, AUTO_SYNC_DEBOUNCE_MS);
+  }
 
   function callBackend(action, extra) {
     var token = Auth.getToken();
@@ -122,11 +177,22 @@
     vueApp.categorieRicette = data.categorieRicette || vueApp.categorieRicette;
     vueApp.piano = data.piano || {};
 
-    // salva subito: DataModel.persist timbra aggiornatoIl a "adesso",
-    // che va bene qui (i dati locali sono, da adesso, allineati al
-    // server) - vedi commento in js/data-model.js su persist()
-    DataModel.persist(vueApp);
+    // si passa remoteLastModified come timestamp esplicito (invece di
+    // lasciare che persist() stampi "adesso") cosi' L finisce allineato a
+    // S = R impostato subito sotto: sono, da questo momento, la stessa
+    // sincronizzazione. Il watch di persistenza (js/app.js) reagira'
+    // comunque a queste stesse assegnazioni e richiamera' persistAll() ->
+    // persist() SENZA timestamp esplicito, ritimbrando aggiornatoIl ad
+    // "adesso" - per questo lo si corregge di nuovo dopo quel giro (vedi
+    // $nextTick sotto): altrimenti L ("adesso") risulterebbe sempre piu'
+    // recente di S (=R) e la sync automatica (js/app.js) rispedirebbe al
+    // server, ad ogni giro, dati identici a quelli appena scaricati.
+    DataModel.persist(vueApp, remoteLastModified);
     setLastSynced(vueApp, remoteLastModified);
+
+    vueApp.$nextTick(function () {
+      DataModel.persist(vueApp, remoteLastModified);
+    });
   }
 
   function showConflict(vueApp, L, R, remoteData) {
@@ -155,6 +221,14 @@
     // il resto dell'app funziona comunque
     if (!window.fetch) return;
     if (!Auth.isLoggedIn()) return;
+
+    // una sync e' gia' in volo: si accoda questa richiesta invece di
+    // accavallare una seconda fetch (vedi commento in testa al file)
+    if (vueApp.syncing) {
+      if (!pendingSync || !silent) pendingSync = { silent: silent };
+      return;
+    }
+    beginSync(vueApp);
 
     callBackend("pull")
       .then(function (resp) {
@@ -199,6 +273,9 @@
       })
       .catch(function (err) {
         handleSyncError(vueApp, err, silent);
+      })
+      .then(function () {
+        endSync(vueApp);
       });
   }
 
@@ -208,7 +285,10 @@
 
     if (choice === "locale") {
       vueApp.syncConflict = null;
-      pushLocal(vueApp, { silent: false });
+      beginSync(vueApp);
+      pushLocal(vueApp, { silent: false }).then(function () {
+        endSync(vueApp);
+      });
       return;
     }
 
@@ -221,6 +301,7 @@
 
   window.Sync = {
     run: run,
+    scheduleAutoSync: scheduleAutoSync,
     resolveConflict: resolveConflict
   };
 })();

@@ -33,7 +33,13 @@
         loggedIn: Auth.isLoggedIn(),
         authUser: null,
         lastSyncedModified: DataModel.loadSyncMeta().lastSyncedModified,
-        syncConflict: null
+        syncConflict: null,
+        // true mentre una chiamata di sync (automatica o manuale) e' in
+        // volo: fa ruotare l'icona di sync in navbar/Impostazioni (vedi
+        // index.html) al posto del vecchio toast "Sincronizzazione in
+        // corso...", che con la sync ora automatica ad ogni modifica
+        // sarebbe comparso troppo spesso
+        syncing: false
       };
     },
 
@@ -58,7 +64,6 @@
       },
 
       syncNow: function () {
-        this.showToast("Sincronizzazione in corso…");
         Sync.run(this, { silent: false });
       },
 
