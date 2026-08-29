@@ -219,9 +219,12 @@
           DataModel.PASTI.forEach(function (pasto) {
             var giorno = piano[dataKey];
             // filter, non indexOf+splice: la stessa ricetta puo' comparire
-            // piu' volte nella stessa cella (vedi FeaturePiano.duplicaRicettaInCella)
-            giorno[pasto.key] = giorno[pasto.key].filter(function (id) {
-              return id !== ricetta.id;
+            // piu' volte nella stessa cella (vedi FeaturePiano.duplicaVoceInCella).
+            // Le voci sono oggetti {id, tipo, ricettaId, ...} (vedi
+            // js/feature-piano.js): si toglie solo la voce-ricetta che punta
+            // a QUESTA ricetta, le voci-nota (tipo:'nota') restano intatte.
+            giorno[pasto.key] = giorno[pasto.key].filter(function (voce) {
+              return !(voce.tipo === "ricetta" && voce.ricettaId === ricetta.id);
             });
           });
         });

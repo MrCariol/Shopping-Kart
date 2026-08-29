@@ -30,7 +30,7 @@
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20260828a";
+  var APP_VERSION = "20260828b";
 
   var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 
@@ -229,15 +229,25 @@
   // ---------- piano: retrocompatibilita' voci celle pasto ----------
   // Fino alla v20260816d ogni cella pasto (colazione/pranzo/cena) era un
   // array di soli ricettaId (stringhe). Da qui in poi e' un array di
-  // "voci" oggetto ({id, tipo:'ricetta', ricettaId} oppure
+  // "voci" oggetto ({id, tipo:'ricetta', ricettaId, nota} oppure
   // {id, tipo:'nota', testo}), per poter affiancare alle ricette delle
-  // semplici note libere. Questa funzione converte al volo le vecchie
-  // stringhe in voci-ricetta, cosi' i piani gia' salvati restano validi.
+  // semplici note libere. "nota" su una voce-ricetta (introdotta dopo, da
+  // qui la seconda normalizzazione qui sotto) e' invece un'annotazione
+  // breve sulla singola istanza pianificata (es. "x2"), NON sulla ricetta
+  // in se': la stessa ricetta pianificata piu' volte puo' avere note
+  // diverse (o nessuna) in ciascuna cella. Questa funzione converte al
+  // volo le vecchie stringhe in voci-ricetta e garantisce che ogni
+  // voce-ricetta abbia sempre il campo "nota" (anche vuoto), cosi' i piani
+  // gia' salvati restano validi e "nota" resta sempre reattiva in Vue
+  // (assegnata da subito, niente $set da fare altrove).
   function migraVociPasto(mealArray) {
     if (!Array.isArray(mealArray)) return [];
     return mealArray.map(function (voce) {
       if (typeof voce === "string") {
-        return { id: uid("voce"), tipo: "ricetta", ricettaId: voce };
+        return { id: uid("voce"), tipo: "ricetta", ricettaId: voce, nota: "" };
+      }
+      if (voce.tipo === "ricetta" && typeof voce.nota !== "string") {
+        voce.nota = "";
       }
       return voce;
     });

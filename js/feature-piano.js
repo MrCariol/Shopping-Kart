@@ -9,13 +9,19 @@
   oggetti semplici), le proprieta' gia' esistenti (colazione/pranzo/cena)
   si possono invece riassegnare/mutare direttamente.
 
-  Ogni cella pasto e' un array di "voci": {id, tipo:'ricetta', ricettaId}
-  oppure {id, tipo:'nota', testo}. Le note sono testo libero fine a se
-  stesso (niente ricetta/ingredienti dietro), usate per i pasti che non
-  vale la pena modellare come ricetta vera (es. "Pizza con amici fuori").
-  Non contribuiscono mai a "Genera lista" (vedi confermaGeneraLista). La
-  retrocompatibilita' con i vecchi piani (array di soli ricettaId stringa)
-  e' gestita in fase di caricamento, vedi migraPiano in js/data-model.js.
+  Ogni cella pasto e' un array di "voci": {id, tipo:'ricetta', ricettaId,
+  nota} oppure {id, tipo:'nota', testo}. Le note "tipo:'nota'" sono testo
+  libero fine a se stesso (niente ricetta/ingredienti dietro), usate per i
+  pasti che non vale la pena modellare come ricetta vera (es. "Pizza con
+  amici fuori"). Il campo "nota" su una voce-ricetta e' invece una breve
+  annotazione sulla singola istanza pianificata (es. "x2" per una doppia
+  porzione): due voci che puntano alla stessa ricetta nella stessa o in
+  celle diverse possono avere note diverse, la ricetta in se' resta unica
+  nel catalogo (vedi duplicaVoceInCella). Nessuna delle due contribuisce a
+  "Genera lista" oltre agli ingredienti della ricetta collegata (vedi
+  confermaGeneraLista). La retrocompatibilita' con i vecchi piani (array
+  di soli ricettaId stringa, o voci-ricetta senza "nota") e' gestita in
+  fase di caricamento, vedi migraPiano in js/data-model.js.
 */
 
 (function () {
@@ -83,6 +89,14 @@
       // sola finche' qualche altra reattivita' non forza un re-render)
       oggiData: function () {
         return new Date();
+      },
+
+      domaniData: function () {
+        return DataModel.addDays(this.oggiData, 1);
+      },
+
+      domaniKey: function () {
+        return DataModel.isoDateKey(this.domaniData);
       }
     },
 
@@ -179,13 +193,15 @@
 
       // niente controllo di unicita': la stessa ricetta puo' comparire piu'
       // volte nella stessa cella (es. doppia porzione), vedi
-      // duplicaVoceInCella piu' sotto
-      assegnaRicettaACella: function (date, mealKey, ricettaId) {
+      // duplicaVoceInCella piu' sotto. "nota" e' opzionale, usata da
+      // duplicaVoceInCella per portare l'annotazione sulla copia.
+      assegnaRicettaACella: function (date, mealKey, ricettaId, nota) {
         var entry = this.ensureDateEntry(date);
         entry[mealKey].push({
           id: DataModel.uid("voce"),
           tipo: "ricetta",
-          ricettaId: ricettaId
+          ricettaId: ricettaId,
+          nota: nota || ""
         });
         this.showToast("Ricetta aggiunta al piano");
       },
@@ -242,7 +258,7 @@
           this.showToast("Nota duplicata");
         } else {
           var ricetta = this.ricettaById(originale.ricettaId);
-          this.assegnaRicettaACella(date, mealKey, originale.ricettaId);
+          this.assegnaRicettaACella(date, mealKey, originale.ricettaId, originale.nota);
           if (ricetta) this.showToast("Ricetta duplicata: " + ricetta.nome);
         }
       },
@@ -252,6 +268,15 @@
         var pulito = (nuovoTesto || "").replace(/^\s+|\s+$/g, "");
         if (!voce || voce.tipo !== "nota" || !pulito) return;
         voce.testo = pulito;
+      },
+
+      // annotazione breve sulla singola voce-ricetta (es. "x2"), non sulla
+      // ricetta in se': a differenza di modificaTestoNota, qui una stringa
+      // vuota e' un valore valido (cancella l'annotazione)
+      modificaNotaRicetta: function (date, mealKey, itemId, nuovaNota) {
+        var voce = this.trovaVoceInCella(date, mealKey, itemId);
+        if (!voce || voce.tipo !== "ricetta") return;
+        voce.nota = (nuovaNota || "").replace(/^\s+|\s+$/g, "");
       },
 
       // ---------- drag & drop (solo se dragDropSupportato) ----------

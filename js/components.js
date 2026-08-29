@@ -133,7 +133,7 @@
     template: "#meal-cell-template",
     props: {
       pasto: { type: Object, required: true },
-      // ogni voce e' {id, tipo:'ricetta', ricettaId} oppure
+      // ogni voce e' {id, tipo:'ricetta', ricettaId, nota} oppure
       // {id, tipo:'nota', testo} - vedi commento in js/feature-piano.js
       voci: { type: Array, required: true },
       ricette: { type: Array, required: true },
@@ -149,9 +149,16 @@
       clipboard: { type: Object, default: null }
     },
     data: function () {
-      // stato di editing inline del testo nota: al piu' una nota alla
-      // volta in modifica per singola cella
-      return { editingNoteId: null, editingNoteText: "" };
+      // stato di editing inline: al piu' una nota "libera" (tipo:'nota')
+      // E al piu' un'annotazione di voce-ricetta in modifica alla volta,
+      // per singola cella (i due editing sono indipendenti perche' sono
+      // due concetti diversi, vedi commento in js/feature-piano.js)
+      return {
+        editingNoteId: null,
+        editingNoteText: "",
+        editingRicettaNotaId: null,
+        editingRicettaNotaText: ""
+      };
     },
     computed: {
       canPastePasto: function () {
@@ -188,6 +195,29 @@
       },
       annullaModificaNota: function () {
         this.editingNoteId = null;
+      },
+      iniziaModificaNotaRicetta: function (voce) {
+        this.editingRicettaNotaId = voce.id;
+        this.editingRicettaNotaText = voce.nota || "";
+        this.$nextTick(function () {
+          var input = this.$refs.ricettaNotaInput;
+          if (input) {
+            if (Array.isArray(input)) input = input[0];
+            input.focus();
+            input.select();
+          }
+        }.bind(this));
+      },
+      confermaModificaNotaRicetta: function (voce) {
+        if (this.editingRicettaNotaId !== voce.id) return;
+        var testo = this.editingRicettaNotaText.replace(/^\s+|\s+$/g, "");
+        this.editingRicettaNotaId = null;
+        if (testo !== (voce.nota || "")) {
+          this.$emit("edit-nota-ricetta", { itemId: voce.id, nota: testo });
+        }
+      },
+      annullaModificaNotaRicetta: function () {
+        this.editingRicettaNotaId = null;
       }
     },
 

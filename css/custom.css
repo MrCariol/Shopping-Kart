@@ -171,6 +171,17 @@
   min-width: 0;
 }
 
+/*
+  .piano-nota-ricetta-input -> input inline per l'annotazione di una
+  singola voce-ricetta nel piano (es. "x2", vedi meal-cell-template):
+  larghezza ridotta invece della larghezza piena di ".form-control", per
+  restare compatta dentro un badge stretto (colonna Piano settimanale).
+*/
+.piano-nota-ricetta-input {
+  width: 5rem;
+  display: inline-block;
+}
+
 .piano-sortable-ghost {
   opacity: 0.35;
   outline: 2px dashed #343a40;
