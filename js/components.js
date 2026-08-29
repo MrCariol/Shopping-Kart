@@ -157,7 +157,10 @@
         editingNoteId: null,
         editingNoteText: "",
         editingRicettaNotaId: null,
-        editingRicettaNotaText: ""
+        editingRicettaNotaText: "",
+        // menu "..." (solo mobile, vedi meal-cell-template): id della voce
+        // il cui menu duplica/rimuovi/nota e' aperto, al piu' uno alla volta
+        openMenuId: null
       };
     },
     computed: {
@@ -218,6 +221,12 @@
       },
       annullaModificaNotaRicetta: function () {
         this.editingRicettaNotaId = null;
+      },
+      toggleMenu: function (voce) {
+        this.openMenuId = this.openMenuId === voce.id ? null : voce.id;
+      },
+      closeMenu: function () {
+        this.openMenuId = null;
       }
     },
 

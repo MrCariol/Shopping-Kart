@@ -22,6 +22,10 @@
   - .autocomplete-dropdown-up -> stessa cosa ma verso l'alto, per la barra
                         aggiungi articolo (vista Lista) che sta in fondo
                         allo schermo
+  - .piano-voce-menu -> menu "..." (duplica/rimuovi/nota) di una voce
+                        pianificata, visibile solo da mobile (< sm), stesso
+                        motivo di .autocomplete-dropdown: niente plugin
+                        JS/Popper
   - .swatch-btn      -> pulsante colore circolare per la palette a swatch
                         delle categorie ricetta
   - .unit-select     -> larghezza massima per le select unita' di misura
@@ -180,6 +184,22 @@
 .piano-nota-ricetta-input {
   width: 5rem;
   display: inline-block;
+}
+
+/*
+  .piano-voce-menu -> menu "..." di una voce pianificata (mobile, vedi
+  meal-cell-template): stesso posizionamento libero di
+  .autocomplete-dropdown ma ancorato a destra (invece che a tutta
+  larghezza) dato che il trigger e' un'icona piccola nell'angolo del
+  badge, non un campo di testo; "right: 0" invece di "left: 0" per non
+  finire fuori dal bordo destro dello schermo sui badge vicini al margine.
+*/
+.piano-voce-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 1055;
+  min-width: 9rem;
 }
 
 .piano-sortable-ghost {
