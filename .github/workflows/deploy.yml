@@ -25,6 +25,9 @@ jobs:
           USER=$(sed -n '2p' <<< "$FTP_CONFIG")
           PASS=$(sed -n '3p' <<< "$FTP_CONFIG")
           DIR=$(sed -n '4p' <<< "$FTP_CONFIG")
+          if [ -n "$DIR" ] && [[ "$DIR" != */ ]]; then
+            DIR="$DIR/"
+          fi
           echo "::add-mask::$USER"
           echo "::add-mask::$PASS"
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
