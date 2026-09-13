@@ -4,18 +4,28 @@
  *
  * Endpoint di sincronizzazione cloud dei dati di Shopping Kart. Gestisce
  * SOLO i dati dell'app (un blob JSON per utente): l'identita' e' sempre
- * verificata parlando con l'hub auth.example.invalid, mai fidandosi di un
+ * verificata parlando con l'hub di autenticazione, mai fidandosi di un
  * uuid passato dal client.
  *
- * Ogni richiesta porta un bearer token (header Authorization) ottenuto
- * dal login su auth.example.invalid. Questo endpoint lo valida chiamando
- * https://auth.example.invalid/api/user lato server (mai il browser): niente
+ * Il dominio dell'hub NON e' fisso: e' quello che l'utente ha inserito nel
+ * campo "Dominio di sincronizzazione" in Impostazioni (js/feature-account.js),
+ * inoltrato qui dal client ad ogni richiesta (campo "authDomain") cosi'
+ * chiunque ospiti un hub compatibile puo' usarlo, non solo un'istanza
+ * predefinita. Compromesso di sicurezza accettato consapevolmente: questo
+ * endpoint si fida del dominio indicato dal client per DECIDERE CHI
+ * CHIAMARE, ma l'identita' resta comunque decisa dall'hub (che risponde con
+ * l'utente proprietario del token), mai dal client stesso - vedi
+ * validaTokenSuHub().
+ *
+ * Ogni richiesta porta un bearer token (header Authorization) ottenuto dal
+ * login sull'hub configurato. Questo endpoint lo valida chiamando
+ * https://<authDomain>/api/user lato server (mai il browser): niente
  * problemi di CORS, e l'identita' dell'utente non e' mai decisa dal
  * client, solo dall'hub.
  *
  * Richieste accettate: solo POST, corpo JSON.
- *   { "action": "pull" }
- *   { "action": "push", "data": {...}, "lastModified": 1234567890 }
+ *   { "action": "pull", "authDomain": "tuodominio.it" }
+ *   { "action": "push", "authDomain": "tuodominio.it", "data": {...}, "lastModified": 1234567890 }
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -83,13 +93,24 @@ if ($token === '') {
     respond(401, array('success' => false, 'error' => 'Token mancante'));
 }
 
-// ---------- validazione del token contro l'hub auth.example.invalid ----------
+// ---------- dominio dell'hub, inviato dal client (vedi commento in testa) ----------
+// Validato con un pattern di hostname "normale" (niente schema/porta/
+// percorso/query, niente spazi): non elimina la possibilita' di puntare a
+// un hub arbitrario (e' voluto, vedi sopra), ma impedisce che il valore
+// finisca in un URL malformato o venga usato per altro che non sia un host.
+$authDomain = isset($input['authDomain']) ? trim((string) $input['authDomain']) : '';
+$hostnamePattern = '/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i';
+if ($authDomain === '' || !preg_match($hostnamePattern, $authDomain)) {
+    respond(400, array('success' => false, 'error' => 'Dominio di sincronizzazione mancante o non valido'));
+}
+
+// ---------- validazione del token contro l'hub di autenticazione ----------
 // Chiamata server-to-server: mai eseguita dal browser, quindi nessun
 // problema di CORS a prescindere dal dominio da cui gira Shopping Kart.
 // Restituisce l'array utente {id, name, email} oppure null se il token
 // non e' valido/scaduto o l'hub non risponde correttamente.
-function validaTokenSuHub($token) {
-    $url = 'https://auth.example.invalid/api/user';
+function validaTokenSuHub($token, $authDomain) {
+    $url = 'https://' . $authDomain . '/api/user';
     $headers = array(
         'Authorization: Bearer ' . $token,
         'Accept: application/json'
@@ -136,7 +157,7 @@ function validaTokenSuHub($token) {
     );
 }
 
-$user = validaTokenSuHub($token);
+$user = validaTokenSuHub($token, $authDomain);
 if (!$user) {
     respond(401, array('success' => false, 'error' => 'Sessione non valida, accedi di nuovo'));
 }

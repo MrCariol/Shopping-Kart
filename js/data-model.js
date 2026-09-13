@@ -22,15 +22,19 @@
   // "lastModified" del server che QUESTO dispositivo ha gia' visto/scritto),
   // volutamente fuori dal blob v2 per lo stesso motivo del tema
   var STORAGE_KEY_SYNC_META = "shopping-kart-sync-meta-v1";
-  // token di accesso all'hub auth.example.invalid, fuori dal blob v2 (non ha
+  // token di accesso all'hub di autenticazione, fuori dal blob v2 (non ha
   // senso includerlo in un backup/export)
   var STORAGE_KEY_AUTH_TOKEN = "shopping-kart-auth-token-v1";
+  // dominio dell'hub di autenticazione/sincronizzazione, inserito liberamente
+  // dall'utente in Impostazioni (vedi js/auth.js): dispositivo-specifico
+  // come il token, quindi fuori dal blob v2 per lo stesso motivo
+  var STORAGE_KEY_AUTH_HUB_DOMAIN = "shopping-kart-auth-hub-domain-v1";
 
   // stesso valore del cache busting "?v=..." (vedi README, sezione
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20260828c";
+  var APP_VERSION = "20260913a";
 
   var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 
@@ -370,7 +374,7 @@
     });
   }
 
-  // ---------- token di accesso auth.example.invalid (chiave dedicata) ----------
+  // ---------- token di accesso all'hub di autenticazione (chiave dedicata) ----------
   function loadAuthToken() {
     try {
       return localStorage.getItem(STORAGE_KEY_AUTH_TOKEN);
@@ -390,6 +394,27 @@
   function clearAuthToken() {
     try {
       localStorage.removeItem(STORAGE_KEY_AUTH_TOKEN);
+    } catch (e) {
+      // ignorato silenziosamente
+    }
+  }
+
+  // ---------- dominio hub di autenticazione/sync (chiave dedicata) ----------
+  function loadAuthHubDomain() {
+    try {
+      return localStorage.getItem(STORAGE_KEY_AUTH_HUB_DOMAIN) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function persistAuthHubDomain(domain) {
+    try {
+      if (domain) {
+        localStorage.setItem(STORAGE_KEY_AUTH_HUB_DOMAIN, domain);
+      } else {
+        localStorage.removeItem(STORAGE_KEY_AUTH_HUB_DOMAIN);
+      }
     } catch (e) {
       // ignorato silenziosamente
     }
@@ -421,6 +446,8 @@
     persistSyncMeta: persistSyncMeta,
     loadAuthToken: loadAuthToken,
     persistAuthToken: persistAuthToken,
-    clearAuthToken: clearAuthToken
+    clearAuthToken: clearAuthToken,
+    loadAuthHubDomain: loadAuthHubDomain,
+    persistAuthHubDomain: persistAuthHubDomain
   };
 })();

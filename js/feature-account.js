@@ -1,9 +1,9 @@
 /*
-  Shopping Kart - account (login via auth.example.invalid) e sincronizzazione
-  cloud, vista in Impostazioni. La logica di autenticazione vive in
-  js/auth.js, quella di sincronizzazione in js/sync.js: questo file e'
-  solo lo stato/i metodi esposti alla UI (stesso pattern delle altre
-  feature-*.js).
+  Shopping Kart - account (login verso un hub di autenticazione esterno,
+  il cui dominio si sceglie qui in Impostazioni) e sincronizzazione cloud.
+  La logica di autenticazione vive in js/auth.js, quella di
+  sincronizzazione in js/sync.js: questo file e' solo lo stato/i metodi
+  esposti alla UI (stesso pattern delle altre feature-*.js).
 */
 
 (function () {
@@ -32,6 +32,10 @@
         // di created()), quindi app.js lo ricorregge subito in created()
         loggedIn: Auth.isLoggedIn(),
         authUser: null,
+        // campo libero in Impostazioni: dominio dell'hub di autenticazione/
+        // sincronizzazione da usare per il login (vedi js/auth.js). Editabile
+        // anche da loggati, per correggerlo senza dover prima uscire.
+        authHubDomain: Auth.getHubDomain(),
         lastSyncedModified: DataModel.loadSyncMeta().lastSyncedModified,
         syncConflict: null,
         // true mentre una chiamata di sync (automatica o manuale) e' in
@@ -52,7 +56,15 @@
     },
 
     methods: {
+      salvaDominioSync: function () {
+        Auth.setHubDomain(this.authHubDomain);
+        this.authHubDomain = Auth.getHubDomain();
+        this.showToast("Dominio salvato");
+      },
+
       login: function () {
+        if (!this.authHubDomain) return;
+        this.salvaDominioSync();
         Auth.startLogin();
       },
 

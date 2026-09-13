@@ -286,7 +286,8 @@
 
     created: function () {
       // va per primo: se l'URL contiene "#token=..." (ritorno dal login
-      // su auth.example.invalid) lo consuma e ripulisce subito l'URL
+      // sull'hub di autenticazione configurato) lo consuma e ripulisce
+      // subito l'URL
       Auth.consumeCallbackToken();
       // data() di FeatureAccount ha gia' provato a leggere lo stato di
       // login, ma prima che consumeCallbackToken() girasse: ricontrolla

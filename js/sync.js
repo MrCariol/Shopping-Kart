@@ -1,6 +1,7 @@
 /*
   Shopping Kart - sincronizzazione cloud dei dati (via backend proprio,
-  api/sync.php - NON auth.example.invalid, che gestisce solo l'identita').
+  api/sync.php - NON l'hub di autenticazione configurato dall'utente, che
+  gestisce solo l'identita').
 
   Algoritmo a 3 timestamp:
     L = aggiornatoIl locale (quando questo dispositivo ha modificato per
@@ -83,7 +84,10 @@
     var token = Auth.getToken();
     if (!token) return Promise.reject(new Error("not-logged-in"));
 
-    var body = { action: action };
+    // il backend non ha un hub fisso da chiamare per validare il token
+    // (vedi api/sync.php): gli viene detto ad ogni richiesta quale dominio
+    // usare, lo stesso configurato qui per il login
+    var body = { action: action, authDomain: Auth.getHubDomain() };
     if (extra) {
       Object.keys(extra).forEach(function (k) {
         body[k] = extra[k];
