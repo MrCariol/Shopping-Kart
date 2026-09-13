@@ -41,6 +41,7 @@ jobs:
           server: ${{ steps.ftp.outputs.host }}
           username: ${{ steps.ftp.outputs.user }}
           password: ${{ steps.ftp.outputs.pass }}
+          protocol: ftps
           server-dir: ${{ steps.ftp.outputs.dir || './' }}
           exclude: |
             **/.git*
