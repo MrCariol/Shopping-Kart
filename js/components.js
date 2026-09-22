@@ -305,6 +305,44 @@
     }
   });
 
+  // ---------- impegni del giorno (Google Calendar, sola lettura) ----------
+  // Riusato dalla vista Piano (dentro day-row) e dalla vista Oggi. Non
+  // renderizza nulla se il giorno non ha impegni: i giorni liberi restano
+  // identici a prima. Vedi js/feature-calendario.js.
+  Vue.component("giorno-eventi", {
+    template: "#giorno-eventi-template",
+    props: {
+      eventi: { type: Array, default: function () { return []; } }
+    },
+    methods: {
+      etichetta: function (evento) {
+        return evento.oraInizio
+          ? evento.oraInizio + " " + evento.titolo
+          : evento.titolo;
+      },
+      // titolo esteso del badge (tooltip): orario completo e luogo, che
+      // nell'etichetta non ci starebbero
+      dettaglio: function (evento) {
+        var parti = [];
+        if (evento.tuttoIlGiorno) {
+          parti.push("Tutto il giorno");
+        } else if (evento.oraInizio && evento.oraFine) {
+          parti.push(evento.oraInizio + " – " + evento.oraFine);
+        } else if (evento.oraInizio) {
+          parti.push("dalle " + evento.oraInizio);
+        } else if (evento.oraFine) {
+          parti.push("fino alle " + evento.oraFine);
+        }
+        parti.push(evento.titolo);
+        if (evento.luogo) parti.push(evento.luogo);
+        return parti.join(" · ");
+      },
+      copia: function (evento) {
+        this.$emit("copy", evento);
+      }
+    }
+  });
+
   // ---------- riga giorno (vista Piano alimentare) ----------
   Vue.component("day-row", {
     template: "#day-row-template",
@@ -314,7 +352,9 @@
       ricette: { type: Array, required: true },
       isToday: { type: Boolean, default: false },
       clipboard: { type: Object, default: null },
-      dragDropSupportato: { type: Boolean, default: false }
+      dragDropSupportato: { type: Boolean, default: false },
+      // impegni del calendario di questo giorno (vuoto = nessuno)
+      eventi: { type: Array, default: function () { return []; } }
     },
     data: function () {
       return { pasti: DataModel.PASTI };

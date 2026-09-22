@@ -29,12 +29,21 @@
   // dall'utente in Impostazioni (vedi js/auth.js): dispositivo-specifico
   // come il token, quindi fuori dal blob v2 per lo stesso motivo
   var STORAGE_KEY_AUTH_HUB_DOMAIN = "shopping-kart-auth-hub-domain-v1";
+  // indirizzo segreto in formato iCal del calendario Google da mostrare nel
+  // Piano (vedi js/calendar.js): e' un segreto di questo dispositivo, quindi
+  // fuori dal blob v2 come il token - non deve finire in un backup/export
+  // che l'utente potrebbe condividere.
+  var STORAGE_KEY_CALENDAR_URL = "shopping-kart-calendar-url-v1";
+  // copia locale degli impegni gia' scaricati, per averli anche offline:
+  // dati di sola lettura che vengono da Google, non dati dell'utente, quindi
+  // niente blob v2 anche qui
+  var STORAGE_KEY_CALENDAR_CACHE = "shopping-kart-calendar-cache-v1";
 
   // stesso valore del cache busting "?v=..." (vedi README, sezione
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20260913a";
+  var APP_VERSION = "20260922a";
 
   var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 
@@ -420,6 +429,57 @@
     }
   }
 
+  // ---------- calendario Google: URL iCal e cache eventi (chiavi dedicate) ----------
+  function loadCalendarUrl() {
+    try {
+      return localStorage.getItem(STORAGE_KEY_CALENDAR_URL) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function persistCalendarUrl(url) {
+    try {
+      if (url) {
+        localStorage.setItem(STORAGE_KEY_CALENDAR_URL, url);
+      } else {
+        localStorage.removeItem(STORAGE_KEY_CALENDAR_URL);
+      }
+    } catch (e) {
+      // ignorato silenziosamente, come per il resto della persistenza
+    }
+  }
+
+  // { aggiornatoIl: epoch ms, eventiPerData: { "YYYY-MM-DD": [evento, ...] } }
+  function loadCalendarCache() {
+    var parsed = readJSON(STORAGE_KEY_CALENDAR_CACHE);
+    return {
+      aggiornatoIl:
+        parsed && typeof parsed.aggiornatoIl === "number"
+          ? parsed.aggiornatoIl
+          : null,
+      eventiPerData:
+        parsed && parsed.eventiPerData && typeof parsed.eventiPerData === "object"
+          ? parsed.eventiPerData
+          : {}
+    };
+  }
+
+  function persistCalendarCache(cache) {
+    writeJSON(STORAGE_KEY_CALENDAR_CACHE, {
+      aggiornatoIl: cache.aggiornatoIl,
+      eventiPerData: cache.eventiPerData
+    });
+  }
+
+  function clearCalendarCache() {
+    try {
+      localStorage.removeItem(STORAGE_KEY_CALENDAR_CACHE);
+    } catch (e) {
+      // ignorato silenziosamente
+    }
+  }
+
   window.DataModel = {
     STORAGE_KEY_V2: STORAGE_KEY_V2,
     STORAGE_KEY_V1: STORAGE_KEY_V1,
@@ -448,6 +508,11 @@
     persistAuthToken: persistAuthToken,
     clearAuthToken: clearAuthToken,
     loadAuthHubDomain: loadAuthHubDomain,
-    persistAuthHubDomain: persistAuthHubDomain
+    persistAuthHubDomain: persistAuthHubDomain,
+    loadCalendarUrl: loadCalendarUrl,
+    persistCalendarUrl: persistCalendarUrl,
+    loadCalendarCache: loadCalendarCache,
+    persistCalendarCache: persistCalendarCache,
+    clearCalendarCache: clearCalendarCache
   };
 })();
