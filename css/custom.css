@@ -26,6 +26,9 @@
                         pianificata, visibile solo da mobile (< sm), stesso
                         motivo di .autocomplete-dropdown: niente plugin
                         JS/Popper
+  - .piano-evento    -> larghezza massima del badge di un impegno del
+                        calendario, per troncare i titoli lunghi (Bootstrap 4
+                        non ha utility di max-width diverse da max-width:100%)
   - .swatch-btn      -> pulsante colore circolare per la palette a swatch
                         delle categorie ricetta
   - .unit-select     -> larghezza massima per le select unita' di misura
@@ -200,6 +203,23 @@
   right: 0;
   z-index: 1055;
   min-width: 9rem;
+}
+
+/*
+  .piano-evento -> badge di un impegno del calendario (componente
+  giorno-eventi): un titolo lungo ("Riunione trimestrale con...") romperebbe
+  la larghezza della colonna giorno, quindi si tronca con "...". Il limite e'
+  espresso in ch (caratteri) e non con una utility Bootstrap perche' non ne
+  esiste una per la larghezza massima di un elemento inline; il titolo
+  completo resta comunque leggibile nel "title" del badge.
+*/
+.piano-evento {
+  max-width: 100%;
+  font-weight: normal;
+}
+
+.piano-evento > .text-truncate {
+  max-width: 22ch;
 }
 
 .piano-sortable-ghost {

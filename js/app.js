@@ -17,7 +17,7 @@
 (function () {
   "use strict";
 
-  ["DataModel", "Auth", "Sync", "FeatureLista", "FeatureCategorie", "FeatureProdotti", "FeatureRicette", "FeaturePiano", "FeatureAccount"].forEach(
+  ["DataModel", "Auth", "Sync", "Calendar", "FeatureLista", "FeatureCategorie", "FeatureProdotti", "FeatureRicette", "FeaturePiano", "FeatureAccount", "FeatureCalendario"].forEach(
     function (name) {
       if (!window[name]) {
         throw new Error(
@@ -62,6 +62,7 @@
     mergeUnique(data, FeatureRicette.data(), "FeatureRicette.data");
     mergeUnique(data, FeaturePiano.data(), "FeaturePiano.data");
     mergeUnique(data, FeatureAccount.data(), "FeatureAccount.data");
+    mergeUnique(data, FeatureCalendario.data(), "FeatureCalendario.data");
 
     return data;
   }
@@ -81,6 +82,11 @@
   mergeUnique(rootComputed, FeatureRicette.computed, "FeatureRicette.computed");
   mergeUnique(rootComputed, FeaturePiano.computed, "FeaturePiano.computed");
   mergeUnique(rootComputed, FeatureAccount.computed, "FeatureAccount.computed");
+  mergeUnique(
+    rootComputed,
+    FeatureCalendario.computed,
+    "FeatureCalendario.computed"
+  );
 
   var rootMethods = {
     // ---------- navigazione SPA ----------
@@ -218,6 +224,11 @@
   mergeUnique(rootMethods, FeatureRicette.methods, "FeatureRicette.methods");
   mergeUnique(rootMethods, FeaturePiano.methods, "FeaturePiano.methods");
   mergeUnique(rootMethods, FeatureAccount.methods, "FeatureAccount.methods");
+  mergeUnique(
+    rootMethods,
+    FeatureCalendario.methods,
+    "FeatureCalendario.methods"
+  );
 
   // sync automatica dopo ogni modifica locale: la stessa istanza gia'
   // usata per salvare su localStorage (vedi commento in testa a
@@ -249,11 +260,18 @@
   // controllo aggiornamenti del Service Worker, in fondo a index.html.
   var SYNC_POLL_INTERVAL_MS = 30000;
 
+  // gli stessi eventi servono anche agli impegni del calendario (vedi
+  // js/feature-calendario.js): un solo posto dove sono registrati, cosi' non
+  // si moltiplicano i listener. aggiornaEventiVistaCorrente() fa da sola
+  // niente se non c'e' un calendario collegato o se la vista attiva non
+  // mostra impegni.
   function registerAutoSyncTriggers(vueApp) {
     function syncIfVisible() {
-      if (vueApp.loggedIn && document.visibilityState === "visible") {
+      if (document.visibilityState !== "visible") return;
+      if (vueApp.loggedIn) {
         Sync.run(vueApp, { silent: true });
       }
+      vueApp.aggiornaEventiVistaCorrente();
     }
 
     document.addEventListener("visibilitychange", syncIfVisible);
@@ -269,6 +287,18 @@
     ricette: { handler: persistHandler, deep: true },
     categorieRicette: { handler: persistHandler, deep: true },
     piano: { handler: persistHandler, deep: true },
+
+    // impegni del calendario: la finestra di date da chiedere al backend
+    // dipende dalla vista attiva e dalla settimana mostrata, quindi si
+    // ricontrolla ad ogni cambio di una delle due (vedi
+    // aggiornaEventiVistaCorrente in js/feature-calendario.js, che non fa
+    // nulla se non c'e' un calendario collegato)
+    view: function () {
+      this.aggiornaEventiVistaCorrente();
+    },
+    weekOffset: function () {
+      this.aggiornaEventiVistaCorrente();
+    },
 
     // preferenza dispositivo: chiave dedicata, non nel blob v2
     temaScuro: function (isDark) {
@@ -317,6 +347,7 @@
         Sync.run(this, { silent: true });
       }
       registerAutoSyncTriggers(this);
+      this.aggiornaEventiVistaCorrente();
 
       // si azzera dopo il giro di watch innescato dalle assegnazioni qui
       // sopra (che gira comunque in un microtask successivo), non subito:

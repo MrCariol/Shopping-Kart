@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260913a" in fondo a css/js/manifest/icone.
+  locale: "?v=20260922a" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260913a" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20260922a" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260913a">
+<link rel="manifest" href="manifest.json?v=20260922a">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shopping Kart">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260913a">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260922a">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260913a">
+<meta name="msapplication-config" content="browserconfig.xml?v=20260922a">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260913a">
+<link rel="icon" href="icons/icon-192.png?v=20260922a">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260913a">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20260922a">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260913a">
+<link rel="stylesheet" href="css/custom.css?v=20260922a">
 </head>
 <body>
 
@@ -192,6 +192,9 @@
         </button>
       </div>
 
+      <!-- impegni dal calendario collegato: un solo avviso, non bloccante -->
+      <p v-if="calendarError" class="small text-danger mb-2">Google Calendar: {{ calendarError }}</p>
+
       <day-row
         v-for="d in weekDates"
         :key="d.getTime()"
@@ -201,6 +204,8 @@
         :is-today="isToday(d)"
         :clipboard="clipboard"
         :drag-drop-supportato="dragDropSupportato"
+        :eventi="eventiPerGiorno(d)"
+        @copy-evento="apriCopiaEvento(d, $event)"
         @add-recipe="apriAggiungiRicettaCella(d, $event)"
         @remove-voce="rimuoviVoceDaCella(d, $event.mealKey, $event.itemId)"
         @edit-recipe="apriEditorRicettaDaId($event)"
@@ -224,9 +229,11 @@
     -->
     <template v-else-if="view === 'oggi'">
       <h1 class="h5 mb-3">Oggi</h1>
+      <p v-if="calendarError" class="small text-danger mb-2">Google Calendar: {{ calendarError }}</p>
       <div class="row">
         <div class="col-6 mb-3">
           <p class="text-muted mb-2"><strong class="text-dark">Oggi</strong> — {{ giornoLabel(oggiData) }}</p>
+          <giorno-eventi :eventi="eventiPerGiorno(oggiData)" @copy="apriCopiaEvento(oggiData, $event)"></giorno-eventi>
           <div class="mb-3" v-for="pasto in pastiConfig" :key="'oggi-' + pasto.key">
             <meal-cell
               :pasto="pasto"
@@ -248,6 +255,7 @@
         </div>
         <div class="col-6 mb-3">
           <p class="text-muted mb-2"><strong class="text-dark">Domani</strong> — {{ giornoLabel(domaniData) }}</p>
+          <giorno-eventi :eventi="eventiPerGiorno(domaniData)" @copy="apriCopiaEvento(domaniData, $event)"></giorno-eventi>
           <div class="mb-3" v-for="pasto in pastiConfig" :key="'domani-' + pasto.key">
             <meal-cell
               :pasto="pasto"
@@ -399,6 +407,45 @@
         </template>
       </section>
 
+      <!-- impegni da Google Calendar (sola lettura) -->
+      <section class="mb-4">
+        <h6 class="text-uppercase text-muted small">Google Calendar</h6>
+        <p class="small text-muted mb-2">
+          Mostra gli impegni del tuo calendario accanto ai giorni del Piano, per vedere subito
+          quali sono già occupati. Su Google Calendar: <strong>Impostazioni del calendario</strong>
+          → <strong>Indirizzo segreto in formato iCal</strong>, poi incollalo qui.
+        </p>
+        <div class="form-group">
+          <label for="calendar-url-input" class="small text-muted mb-1">Indirizzo iCal</label>
+          <input
+            type="text"
+            id="calendar-url-input"
+            class="form-control"
+            v-model.trim="calendarUrl"
+            placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"
+            @blur="salvaCalendarUrl"
+            @keyup.enter="salvaCalendarUrl">
+        </div>
+        <p class="small text-danger" v-if="calendarError">{{ calendarError }}</p>
+        <template v-if="calendarioAttivo">
+          <p class="small text-muted mb-2">Impegni aggiornati al: {{ calendarAggiornatoLabel() }}</p>
+          <div class="d-flex flex-column">
+            <button type="button" class="btn btn-outline-primary mb-2" @click="ricaricaCalendario" :disabled="calendarLoading || !calendarioSupportato">
+              <mdi-icon name="sync" :size="18" class="mr-1" :class="{ 'icon-spin': calendarLoading }"></mdi-icon>Aggiorna impegni
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @click="rimuoviCalendario">Scollega calendario</button>
+          </div>
+        </template>
+        <p class="small text-muted mt-2 mb-0" v-if="!calendarioSupportato">
+          Questo browser non supporta il download degli impegni: il resto dell'app funziona normalmente.
+        </p>
+        <p class="small text-muted mt-2 mb-0">
+          Gli impegni sono di sola lettura: l'app non scrive mai sul tuo calendario. Chi ottiene
+          questo indirizzo può leggere il calendario, quindi non finisce nel backup né nella
+          sincronizzazione: va reinserito su ogni dispositivo.
+        </p>
+      </section>
+
       <!-- backup -->
       <section class="mb-4">
         <h6 class="text-uppercase text-muted small">Backup dati</h6>
@@ -544,6 +591,47 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="chiudiAggiungiRicettaCella">Chiudi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===================== MODALE: COPIA IMPEGNO NEL PIANO ===================== -->
+  <!--
+    L'impegno copiato diventa una normale nota della cella pasto scelta
+    (stessa strada di una nota scritta a mano): da quel momento vive nel
+    piano, entra in backup/sync e non e' piu' legato a Google Calendar.
+  -->
+  <template v-if="copiaEventoContext">
+    <div class="modal-backdrop show" @click="chiudiCopiaEvento"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Copia nel piano
+              <small class="d-block text-muted">{{ giornoLabel(copiaEventoContext.date) }}</small>
+            </h5>
+            <button type="button" class="close" @click="chiudiCopiaEvento" aria-label="Chiudi">
+              <mdi-icon name="close" :size="20"></mdi-icon>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-1">Verrà aggiunta la nota:</p>
+            <p class="font-italic mb-3">“{{ anteprimaNotaEvento(copiaEventoContext.evento) }}”</p>
+            <label class="small text-muted mb-1">In quale pasto?</label>
+            <div class="d-flex flex-column">
+              <button
+                type="button"
+                class="btn btn-outline-primary mb-2"
+                v-for="pasto in pastiConfig"
+                :key="'copia-evento-' + pasto.key"
+                @click="confermaCopiaEventoInPasto(pasto.key)">{{ pasto.label }}</button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="chiudiCopiaEvento">Annulla</button>
           </div>
         </div>
       </div>
@@ -880,6 +968,34 @@
   </div>
 </script>
 
+<!-- ===================== TEMPLATE: IMPEGNI DEL GIORNO (Google Calendar) ===================== -->
+<!--
+  Sola lettura: gli impegni arrivano dal calendario collegato in Impostazioni
+  (vedi js/feature-calendario.js) e servono a vedere subito quali giorni sono
+  gia' occupati. L'icona "calendario +" su ogni impegno lo copia nel piano
+  come nota, scegliendo il pasto nel modale. Se il giorno non ha impegni qui
+  non viene renderizzato nulla, cosi' i giorni liberi restano come prima.
+-->
+<script type="text/x-template" id="giorno-eventi-template">
+  <div v-if="eventi.length" class="d-flex flex-wrap mb-1">
+    <span
+      class="badge badge-light border d-inline-flex align-items-center mr-1 mb-1 piano-evento"
+      v-for="evento in eventi"
+      :key="evento.id"
+      :title="dettaglio(evento)">
+      <mdi-icon name="calendar-today" :size="11" class="mr-1 text-muted flex-shrink-0"></mdi-icon>
+      <span class="text-truncate">{{ etichetta(evento) }}</span>
+      <button
+        type="button"
+        class="btn btn-sm btn-link text-secondary p-0 ml-1 flex-shrink-0"
+        @click="copia(evento)"
+        :aria-label="'Copia nel piano: ' + evento.titolo">
+        <mdi-icon name="calendar-plus" :size="13"></mdi-icon>
+      </button>
+    </span>
+  </div>
+</script>
+
 <!-- ===================== TEMPLATE: RIGA GIORNO (Piano alimentare) ===================== -->
 <script type="text/x-template" id="day-row-template">
   <div class="card mb-2" :class="{ 'border-primary': isToday }">
@@ -895,6 +1011,7 @@
       </span>
     </div>
     <div class="card-body p-1">
+      <giorno-eventi :eventi="eventi" @copy="$emit('copy-evento', $event)"></giorno-eventi>
       <div class="row no-gutters">
         <div class="col-4 px-1" v-for="pasto in pasti" :key="pasto.key">
           <meal-cell
@@ -1030,22 +1147,25 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260913a"></script>
+<script src="js/vue.min.js?v=20260922a"></script>
 <!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
-<script src="js/sortable.min.js?v=20260913a"></script>
-<script src="js/icons.js?v=20260913a"></script>
-<script src="js/data-model.js?v=20260913a"></script>
-<script src="js/components.js?v=20260913a"></script>
-<script src="js/feature-lista.js?v=20260913a"></script>
-<script src="js/feature-categorie.js?v=20260913a"></script>
-<script src="js/feature-prodotti.js?v=20260913a"></script>
-<script src="js/feature-ricette.js?v=20260913a"></script>
-<script src="js/feature-piano.js?v=20260913a"></script>
+<script src="js/sortable.min.js?v=20260922a"></script>
+<script src="js/icons.js?v=20260922a"></script>
+<script src="js/data-model.js?v=20260922a"></script>
+<script src="js/components.js?v=20260922a"></script>
+<script src="js/feature-lista.js?v=20260922a"></script>
+<script src="js/feature-categorie.js?v=20260922a"></script>
+<script src="js/feature-prodotti.js?v=20260922a"></script>
+<script src="js/feature-ricette.js?v=20260922a"></script>
+<script src="js/feature-piano.js?v=20260922a"></script>
 <!-- Account (login su hub di autenticazione configurabile) e sincronizzazione cloud -->
-<script src="js/auth.js?v=20260913a"></script>
-<script src="js/sync.js?v=20260913a"></script>
-<script src="js/feature-account.js?v=20260913a"></script>
-<script src="js/app.js?v=20260913a"></script>
+<script src="js/auth.js?v=20260922a"></script>
+<script src="js/sync.js?v=20260922a"></script>
+<script src="js/feature-account.js?v=20260922a"></script>
+<!-- Impegni da Google Calendar (sola lettura, via api/calendar.php) -->
+<script src="js/calendar.js?v=20260922a"></script>
+<script src="js/feature-calendario.js?v=20260922a"></script>
+<script src="js/app.js?v=20260922a"></script>
 
 <!--
   Service Worker: rende l'app completamente offline anche a scheda/app
