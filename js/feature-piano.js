@@ -97,6 +97,18 @@
 
       domaniKey: function () {
         return DataModel.isoDateKey(this.domaniData);
+      },
+
+      // la settimana visualizzata ha almeno una voce nei pasti visibili
+      // (per il bottone "Svuota settimana")
+      settimanaHaContenuto: function () {
+        var self = this;
+        return this.weekDates.some(function (d) {
+          var entry = self.mealsForDate(d);
+          return self.pastiMostrati.some(function (p) {
+            return entry[p.key].length;
+          });
+        });
       }
     },
 
@@ -409,6 +421,39 @@
         }
         entry[mealKey] = this.clonaVoci(this.clipboard.data);
         this.showToast("Sezione incollata");
+      },
+
+      // ---------- svuota pasto / giorno / settimana ----------
+      // Giorno e settimana svuotano solo i pasti visibili (impostazione
+      // "Pasti visibili"): i pasti nascosti non si vedono, quindi non
+      // vengono toccati.
+      svuotaPasto: function (date, mealKey) {
+        var entry = this.ensureDateEntry(date);
+        if (!entry[mealKey].length) return;
+        if (!window.confirm("Svuotare questa sezione?")) return;
+        entry[mealKey] = [];
+        this.showToast("Sezione svuotata");
+      },
+
+      svuotaGiorno: function (date) {
+        var entry = this.ensureDateEntry(date);
+        if (!window.confirm("Svuotare il piano di questo giorno?")) return;
+        this.pastiMostrati.forEach(function (p) {
+          entry[p.key] = [];
+        });
+        this.showToast("Giorno svuotato");
+      },
+
+      svuotaSettimana: function () {
+        var self = this;
+        if (!window.confirm("Svuotare il piano della settimana visualizzata?")) return;
+        this.weekDates.forEach(function (d) {
+          var entry = self.ensureDateEntry(d);
+          self.pastiMostrati.forEach(function (p) {
+            entry[p.key] = [];
+          });
+        });
+        this.showToast("Settimana svuotata");
       },
 
       // ---------- genera lista della spesa dalla pianificazione ----------
