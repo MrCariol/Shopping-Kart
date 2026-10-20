@@ -363,3 +363,27 @@ html.theme-dark .alert-info {
   border-color: #185763;
   color: #a8dee6;
 }
+
+/*
+  Icone dentro le colonne pasto sul tema scuro: i bottoni ".btn" senza
+  variante (copia/incolla/svuota sezione) hanno di default il colore del
+  testo Bootstrap (#212529, quasi nero) e text-secondary/text-danger sono
+  troppo scuri sugli sfondi pasto scuri qui sopra: si schiariscono.
+*/
+html.theme-dark .alert-warning .btn:not(.btn-link):not([class*="btn-outline"]),
+html.theme-dark .alert-success .btn:not(.btn-link):not([class*="btn-outline"]),
+html.theme-dark .alert-info .btn:not(.btn-link):not([class*="btn-outline"]) {
+  color: inherit;
+}
+
+html.theme-dark .alert-warning .text-secondary,
+html.theme-dark .alert-success .text-secondary,
+html.theme-dark .alert-info .text-secondary {
+  color: #ced4da !important;
+}
+
+html.theme-dark .alert-warning .text-danger,
+html.theme-dark .alert-success .text-danger,
+html.theme-dark .alert-info .text-danger {
+  color: #ff8a95 !important;
+}
