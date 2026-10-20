@@ -52,6 +52,8 @@
       pastiConfig: DataModel.PASTI,
       aggiornatoIl: 0,
       temaScuro: false,
+      // colonne pasto mostrate in Piano e Oggi (preferenza dispositivo)
+      pastiVisibili: DataModel.loadPastiVisibili(),
       toastMessage: "",
       toastTimer: null
     };
@@ -67,7 +69,15 @@
     return data;
   }
 
-  var rootComputed = {};
+  var rootComputed = {
+    // pasti da mostrare in Piano e Oggi, nell'ordine di DataModel.PASTI
+    pastiMostrati: function () {
+      var visibili = this.pastiVisibili;
+      return DataModel.PASTI.filter(function (p) {
+        return visibili[p.key];
+      });
+    }
+  };
   mergeUnique(rootComputed, FeatureLista.computed, "FeatureLista.computed");
   mergeUnique(
     rootComputed,
@@ -304,6 +314,12 @@
     temaScuro: function (isDark) {
       document.documentElement.classList.toggle("theme-dark", isDark);
       DataModel.persistTema(isDark);
+    },
+    pastiVisibili: {
+      handler: function (visibili) {
+        DataModel.persistPastiVisibili(visibili);
+      },
+      deep: true
     }
   };
 

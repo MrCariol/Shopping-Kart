@@ -18,6 +18,10 @@
   // preferenza di visualizzazione del dispositivo, non un dato utente:
   // volutamente fuori dal blob v2 (non fa parte del backup/export)
   var STORAGE_KEY_TEMA = "shopping-kart-tema-v1";
+  // quali colonne pasto (colazione/pranzo/cena) mostrare in Piano e Oggi:
+  // preferenza di visualizzazione del dispositivo come il tema, fuori dal
+  // blob v2
+  var STORAGE_KEY_PASTI_VISIBILI = "shopping-kart-pasti-visibili-v1";
   // stato di sincronizzazione: dispositivo-specifico (qual e' l'ultimo
   // "lastModified" del server che QUESTO dispositivo ha gia' visto/scritto),
   // volutamente fuori dal blob v2 per lo stesso motivo del tema
@@ -43,7 +47,7 @@
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20260922a";
+  var APP_VERSION = "20261020a";
 
   var UNITS = ["", "kg", "g", "l", "ml", "conf"];
 
@@ -366,6 +370,26 @@
     }
   }
 
+  // ---------- pasti visibili (chiave dedicata, fuori dal blob v2) ----------
+  // default: tutti visibili; chiavi mancanti o non booleane = visibile
+  function loadPastiVisibili() {
+    var parsed = readJSON(STORAGE_KEY_PASTI_VISIBILI);
+    var result = {};
+    PASTI.forEach(function (p) {
+      result[p.key] =
+        parsed && typeof parsed[p.key] === "boolean" ? parsed[p.key] : true;
+    });
+    return result;
+  }
+
+  function persistPastiVisibili(visibili) {
+    try {
+      localStorage.setItem(STORAGE_KEY_PASTI_VISIBILI, JSON.stringify(visibili));
+    } catch (e) {
+      // ignorato silenziosamente, come per il resto della persistenza
+    }
+  }
+
   // ---------- stato di sincronizzazione (chiave dedicata, fuori dal blob v2) ----------
   function loadSyncMeta() {
     var parsed = readJSON(STORAGE_KEY_SYNC_META);
@@ -502,6 +526,8 @@
     persist: persist,
     loadTema: loadTema,
     persistTema: persistTema,
+    loadPastiVisibili: loadPastiVisibili,
+    persistPastiVisibili: persistPastiVisibili,
     loadSyncMeta: loadSyncMeta,
     persistSyncMeta: persistSyncMeta,
     loadAuthToken: loadAuthToken,
