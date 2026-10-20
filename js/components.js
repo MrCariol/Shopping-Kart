@@ -371,6 +371,13 @@
       giornoData: function () {
         return this.date.getDate() + " " + DataModel.MESI_ABBR[this.date.getMonth()];
       },
+      // c'e' almeno una voce nei pasti visibili (per il bottone "svuota giorno")
+      haContenuto: function () {
+        var meals = this.meals;
+        return this.pasti.some(function (p) {
+          return meals[p.key] && meals[p.key].length;
+        });
+      },
       canPasteDay: function () {
         return !!this.clipboard && this.clipboard.type === "day";
       },

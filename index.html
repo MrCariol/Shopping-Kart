@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20261020a" in fondo a css/js/manifest/icone.
+  locale: "?v=20261020b" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20261020a" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20261020b" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20261020a">
+<link rel="manifest" href="manifest.json?v=20261020b">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shopping Kart">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20261020a">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20261020b">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20261020a">
+<meta name="msapplication-config" content="browserconfig.xml?v=20261020b">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20261020a">
+<link rel="icon" href="icons/icon-192.png?v=20261020b">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20261020a">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20261020b">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20261020a">
+<link rel="stylesheet" href="css/custom.css?v=20261020b">
 </head>
 <body>
 
@@ -183,8 +183,11 @@
           <button type="button" class="btn btn-outline-secondary btn-sm mr-1" @click="copiaSettimana">
             <mdi-icon name="content-copy" :size="14" class="mr-1"></mdi-icon>Copia settimana
           </button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" v-if="clipboard && clipboard.type === 'week'" @click="incollaSettimana">
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-1" v-if="clipboard && clipboard.type === 'week'" @click="incollaSettimana">
             <mdi-icon name="content-paste" :size="14" class="mr-1"></mdi-icon>Incolla settimana
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" v-if="settimanaHaContenuto" @click="svuotaSettimana">
+            <mdi-icon name="trash-can-outline" :size="14" class="mr-1"></mdi-icon>Svuota settimana
           </button>
         </span>
         <button type="button" class="btn btn-primary btn-sm mb-1" @click="apriGeneraLista">
@@ -215,6 +218,8 @@
         @edit-nota-ricetta="modificaNotaRicetta(d, $event.mealKey, $event.itemId, $event.nota)"
         @copy-day="copiaGiorno(d)"
         @paste-day="incollaGiorno(d)"
+        @svuota-day="svuotaGiorno(d)"
+        @svuota-pasto="svuotaPasto(d, $event)"
         @copy-pasto="copiaPasto(d, $event)"
         @paste-pasto="incollaPasto(d, $event)">
       </day-row>
@@ -250,7 +255,8 @@
               @edit-nota="modificaTestoNota(oggiData, pasto.key, $event.itemId, $event.testo)"
               @edit-nota-ricetta="modificaNotaRicetta(oggiData, pasto.key, $event.itemId, $event.nota)"
               @copy-pasto="copiaPasto(oggiData, pasto.key)"
-              @paste-pasto="incollaPasto(oggiData, pasto.key)">
+              @paste-pasto="incollaPasto(oggiData, pasto.key)"
+              @svuota-pasto="svuotaPasto(oggiData, pasto.key)">
             </meal-cell>
           </div>
         </div>
@@ -272,7 +278,8 @@
               @edit-nota="modificaTestoNota(domaniData, pasto.key, $event.itemId, $event.testo)"
               @edit-nota-ricetta="modificaNotaRicetta(domaniData, pasto.key, $event.itemId, $event.nota)"
               @copy-pasto="copiaPasto(domaniData, pasto.key)"
-              @paste-pasto="incollaPasto(domaniData, pasto.key)">
+              @paste-pasto="incollaPasto(domaniData, pasto.key)"
+              @svuota-pasto="svuotaPasto(domaniData, pasto.key)">
             </meal-cell>
           </div>
         </div>
@@ -1019,6 +1026,9 @@
         <button type="button" class="btn btn-sm py-0 px-1 ml-1" :class="isToday ? 'btn-outline-light' : 'btn-outline-secondary'" v-if="canPasteDay" @click="$emit('paste-day')" aria-label="Incolla giorno">
           <mdi-icon name="content-paste" :size="14"></mdi-icon>
         </button>
+        <button type="button" class="btn btn-sm py-0 px-1 ml-1" :class="isToday ? 'btn-outline-light' : 'btn-outline-danger'" v-if="haContenuto" @click="$emit('svuota-day')" aria-label="Svuota giorno">
+          <mdi-icon name="trash-can-outline" :size="14"></mdi-icon>
+        </button>
       </span>
     </div>
     <div class="card-body p-1">
@@ -1039,7 +1049,8 @@
             @edit-nota="$emit('edit-nota', { mealKey: pasto.key, itemId: $event.itemId, testo: $event.testo })"
             @edit-nota-ricetta="$emit('edit-nota-ricetta', { mealKey: pasto.key, itemId: $event.itemId, nota: $event.nota })"
             @copy-pasto="$emit('copy-pasto', pasto.key)"
-            @paste-pasto="$emit('paste-pasto', pasto.key)">
+            @paste-pasto="$emit('paste-pasto', pasto.key)"
+            @svuota-pasto="$emit('svuota-pasto', pasto.key)">
           </meal-cell>
         </div>
       </div>
@@ -1058,6 +1069,9 @@
         </button>
         <button type="button" class="btn btn-sm py-0 px-1" v-if="canPastePasto" @click="$emit('paste-pasto')" aria-label="Incolla sezione">
           <mdi-icon name="content-paste" :size="12"></mdi-icon>
+        </button>
+        <button type="button" class="btn btn-sm py-0 px-1" v-if="voci.length" @click="$emit('svuota-pasto')" aria-label="Svuota sezione">
+          <mdi-icon name="trash-can-outline" :size="12"></mdi-icon>
         </button>
       </span>
     </div>
@@ -1158,25 +1172,25 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20261020a"></script>
+<script src="js/vue.min.js?v=20261020b"></script>
 <!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
-<script src="js/sortable.min.js?v=20261020a"></script>
-<script src="js/icons.js?v=20261020a"></script>
-<script src="js/data-model.js?v=20261020a"></script>
-<script src="js/components.js?v=20261020a"></script>
-<script src="js/feature-lista.js?v=20261020a"></script>
-<script src="js/feature-categorie.js?v=20261020a"></script>
-<script src="js/feature-prodotti.js?v=20261020a"></script>
-<script src="js/feature-ricette.js?v=20261020a"></script>
-<script src="js/feature-piano.js?v=20261020a"></script>
+<script src="js/sortable.min.js?v=20261020b"></script>
+<script src="js/icons.js?v=20261020b"></script>
+<script src="js/data-model.js?v=20261020b"></script>
+<script src="js/components.js?v=20261020b"></script>
+<script src="js/feature-lista.js?v=20261020b"></script>
+<script src="js/feature-categorie.js?v=20261020b"></script>
+<script src="js/feature-prodotti.js?v=20261020b"></script>
+<script src="js/feature-ricette.js?v=20261020b"></script>
+<script src="js/feature-piano.js?v=20261020b"></script>
 <!-- Account (login su hub di autenticazione configurabile) e sincronizzazione cloud -->
-<script src="js/auth.js?v=20261020a"></script>
-<script src="js/sync.js?v=20261020a"></script>
-<script src="js/feature-account.js?v=20261020a"></script>
+<script src="js/auth.js?v=20261020b"></script>
+<script src="js/sync.js?v=20261020b"></script>
+<script src="js/feature-account.js?v=20261020b"></script>
 <!-- Impegni da Google Calendar (sola lettura, via api/calendar.php) -->
-<script src="js/calendar.js?v=20261020a"></script>
-<script src="js/feature-calendario.js?v=20261020a"></script>
-<script src="js/app.js?v=20261020a"></script>
+<script src="js/calendar.js?v=20261020b"></script>
+<script src="js/feature-calendario.js?v=20261020b"></script>
+<script src="js/app.js?v=20261020b"></script>
 
 <!--
   Service Worker: rende l'app completamente offline anche a scheda/app
