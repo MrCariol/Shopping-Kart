@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20260922a" in fondo a css/js/manifest/icone.
+  locale: "?v=20261020a" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20260922a" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20261020a" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20260922a">
+<link rel="manifest" href="manifest.json?v=20261020a">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shopping Kart">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20260922a">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20261020a">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20260922a">
+<meta name="msapplication-config" content="browserconfig.xml?v=20261020a">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20260922a">
+<link rel="icon" href="icons/icon-192.png?v=20261020a">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20260922a">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20261020a">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20260922a">
+<link rel="stylesheet" href="css/custom.css?v=20261020a">
 </head>
 <body>
 
@@ -205,6 +205,7 @@
         :clipboard="clipboard"
         :drag-drop-supportato="dragDropSupportato"
         :eventi="eventiPerGiorno(d)"
+        :pasti="pastiMostrati"
         @copy-evento="apriCopiaEvento(d, $event)"
         @add-recipe="apriAggiungiRicettaCella(d, $event)"
         @remove-voce="rimuoviVoceDaCella(d, $event.mealKey, $event.itemId)"
@@ -234,7 +235,7 @@
         <div class="col-6 mb-3">
           <p class="text-muted mb-2"><strong class="text-dark">Oggi</strong> — {{ giornoLabel(oggiData) }}</p>
           <giorno-eventi :eventi="eventiPerGiorno(oggiData)" @copy="apriCopiaEvento(oggiData, $event)"></giorno-eventi>
-          <div class="mb-3" v-for="pasto in pastiConfig" :key="'oggi-' + pasto.key">
+          <div class="mb-3" v-for="pasto in pastiMostrati" :key="'oggi-' + pasto.key">
             <meal-cell
               :pasto="pasto"
               :voci="mealsForDate(oggiData)[pasto.key]"
@@ -256,7 +257,7 @@
         <div class="col-6 mb-3">
           <p class="text-muted mb-2"><strong class="text-dark">Domani</strong> — {{ giornoLabel(domaniData) }}</p>
           <giorno-eventi :eventi="eventiPerGiorno(domaniData)" @copy="apriCopiaEvento(domaniData, $event)"></giorno-eventi>
-          <div class="mb-3" v-for="pasto in pastiConfig" :key="'domani-' + pasto.key">
+          <div class="mb-3" v-for="pasto in pastiMostrati" :key="'domani-' + pasto.key">
             <meal-cell
               :pasto="pasto"
               :voci="mealsForDate(domaniData)[pasto.key]"
@@ -368,6 +369,16 @@
         <div class="custom-control custom-switch">
           <input type="checkbox" class="custom-control-input" id="tema-scuro-switch" v-model="temaScuro">
           <label class="custom-control-label" for="tema-scuro-switch">Tema scuro</label>
+        </div>
+      </section>
+
+      <!-- colonne pasto mostrate in Piano e Oggi -->
+      <section class="mb-4">
+        <h6 class="text-uppercase text-muted small">Pasti visibili</h6>
+        <p class="small text-muted mb-2">Colonne mostrate nel Piano alimentare e in Oggi.</p>
+        <div class="custom-control custom-checkbox" v-for="pasto in pastiConfig" :key="'visibile-' + pasto.key">
+          <input type="checkbox" class="custom-control-input" :id="'pasto-visibile-' + pasto.key" v-model="pastiVisibili[pasto.key]">
+          <label class="custom-control-label" :for="'pasto-visibile-' + pasto.key">{{ pasto.label }}</label>
         </div>
       </section>
 
@@ -1013,7 +1024,7 @@
     <div class="card-body p-1">
       <giorno-eventi :eventi="eventi" @copy="$emit('copy-evento', $event)"></giorno-eventi>
       <div class="row no-gutters">
-        <div class="col-4 px-1" v-for="pasto in pasti" :key="pasto.key">
+        <div class="px-1" :class="colClass" v-for="pasto in pasti" :key="pasto.key">
           <meal-cell
             :pasto="pasto"
             :voci="meals[pasto.key]"
@@ -1147,25 +1158,25 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20260922a"></script>
+<script src="js/vue.min.js?v=20261020a"></script>
 <!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
-<script src="js/sortable.min.js?v=20260922a"></script>
-<script src="js/icons.js?v=20260922a"></script>
-<script src="js/data-model.js?v=20260922a"></script>
-<script src="js/components.js?v=20260922a"></script>
-<script src="js/feature-lista.js?v=20260922a"></script>
-<script src="js/feature-categorie.js?v=20260922a"></script>
-<script src="js/feature-prodotti.js?v=20260922a"></script>
-<script src="js/feature-ricette.js?v=20260922a"></script>
-<script src="js/feature-piano.js?v=20260922a"></script>
+<script src="js/sortable.min.js?v=20261020a"></script>
+<script src="js/icons.js?v=20261020a"></script>
+<script src="js/data-model.js?v=20261020a"></script>
+<script src="js/components.js?v=20261020a"></script>
+<script src="js/feature-lista.js?v=20261020a"></script>
+<script src="js/feature-categorie.js?v=20261020a"></script>
+<script src="js/feature-prodotti.js?v=20261020a"></script>
+<script src="js/feature-ricette.js?v=20261020a"></script>
+<script src="js/feature-piano.js?v=20261020a"></script>
 <!-- Account (login su hub di autenticazione configurabile) e sincronizzazione cloud -->
-<script src="js/auth.js?v=20260922a"></script>
-<script src="js/sync.js?v=20260922a"></script>
-<script src="js/feature-account.js?v=20260922a"></script>
+<script src="js/auth.js?v=20261020a"></script>
+<script src="js/sync.js?v=20261020a"></script>
+<script src="js/feature-account.js?v=20261020a"></script>
 <!-- Impegni da Google Calendar (sola lettura, via api/calendar.php) -->
-<script src="js/calendar.js?v=20260922a"></script>
-<script src="js/feature-calendario.js?v=20260922a"></script>
-<script src="js/app.js?v=20260922a"></script>
+<script src="js/calendar.js?v=20261020a"></script>
+<script src="js/feature-calendario.js?v=20261020a"></script>
+<script src="js/app.js?v=20261020a"></script>
 
 <!--
   Service Worker: rende l'app completamente offline anche a scheda/app

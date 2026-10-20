@@ -354,12 +354,16 @@
       clipboard: { type: Object, default: null },
       dragDropSupportato: { type: Boolean, default: false },
       // impegni del calendario di questo giorno (vuoto = nessuno)
-      eventi: { type: Array, default: function () { return []; } }
-    },
-    data: function () {
-      return { pasti: DataModel.PASTI };
+      eventi: { type: Array, default: function () { return []; } },
+      // pasti da mostrare (vedi impostazione "Pasti visibili")
+      pasti: { type: Array, default: function () { return DataModel.PASTI; } }
     },
     computed: {
+      // larghezza colonna in base a quanti pasti sono visibili (1-3)
+      colClass: function () {
+        var n = this.pasti.length || 1;
+        return "col-" + Math.floor(12 / n);
+      },
       giornoNome: function () {
         var idx = (this.date.getDay() + 6) % 7;
         return DataModel.GIORNI_SETTIMANA[idx];
