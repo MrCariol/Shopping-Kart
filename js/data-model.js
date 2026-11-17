@@ -47,7 +47,7 @@
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20261117a";
+  var APP_VERSION = "20261117b";
 
   // palette a swatch per le categorie ricetta - riusa gli stessi hex dei
   // contestuali Bootstrap 4 gia' presenti nell'app (badge/alert), per
