@@ -11,9 +11,9 @@
   CACHE BUSTING: la cache dei browser mobile (in particolare su Edge/Lumia)
   e' molto aggressiva. Il metodo usato qui, senza build step e senza
   Service Worker, e' una versione manuale in query string su ogni file
-  locale: "?v=20261020c" in fondo a css/js/manifest/icone.
+  locale: "?v=20261117a" in fondo a css/js/manifest/icone.
 
-  Prima di ogni pubblicazione: cerca "20261020c" in QUESTO file E in
+  Prima di ogni pubblicazione: cerca "20261117a" in QUESTO file E in
   manifest.json e browserconfig.xml, sostituiscilo ovunque con un nuovo
   valore (es. la data del giorno + una lettera). Cambiando l'URL del file,
   il telefono e' costretto a scaricarne una copia nuova anche se il nome
@@ -23,25 +23,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<link rel="manifest" href="manifest.json?v=20261020c">
+<link rel="manifest" href="manifest.json?v=20261117a">
 <meta name="theme-color" content="#343a40">
 
 <!-- iOS: comportamento "app installata" da schermata Home -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shopping Kart">
-<link rel="apple-touch-icon" href="icons/icon-192.png?v=20261020c">
+<link rel="apple-touch-icon" href="icons/icon-192.png?v=20261117a">
 
 <!-- Windows 10 Mobile / Edge legacy: aspetto del tile se "aggiunto a Start" -->
-<meta name="msapplication-config" content="browserconfig.xml?v=20261020c">
+<meta name="msapplication-config" content="browserconfig.xml?v=20261117a">
 <meta name="msapplication-TileColor" content="#343a40">
 
-<link rel="icon" href="icons/icon-192.png?v=20261020c">
+<link rel="icon" href="icons/icon-192.png?v=20261117a">
 
 <!-- Bootstrap 4.6 self-hosted: copre praticamente tutto lo stile dell'app -->
-<link rel="stylesheet" href="css/bootstrap.min.css?v=20261020c">
+<link rel="stylesheet" href="css/bootstrap.min.css?v=20261117a">
 <!-- le poche regole che Bootstrap 4 non offre (vedi commenti nel file) -->
-<link rel="stylesheet" href="css/custom.css?v=20261020c">
+<link rel="stylesheet" href="css/custom.css?v=20261117a">
 </head>
 <body>
 
@@ -93,7 +93,6 @@
               v-for="item in group.items"
               :key="item.id"
               :item="item"
-              :units="units"
               :categories="categorie"
               @remove="removeItem">
             </item-row>
@@ -108,7 +107,6 @@
             v-for="item in sortedFlatItems"
             :key="item.id"
             :item="item"
-            :units="units"
             :categories="categorie"
             @remove="removeItem">
           </item-row>
@@ -139,8 +137,7 @@
                   v-for="p in group.items"
                   :key="p.id"
                   :prodotto="p"
-                  :units="units"
-                  :categories="categorie"
+                      :categories="categorie"
                   @add="aggiungiProdottoALista"
                   @remove="deleteProdotto">
                 </prodotto-row>
@@ -152,7 +149,6 @@
               v-for="p in prodottiDaAggiungere"
               :key="p.id"
               :prodotto="p"
-              :units="units"
               :categories="categorie"
               @add="aggiungiProdottoALista"
               @remove="deleteProdotto">
@@ -489,7 +485,7 @@
   <div class="fixed-bottom">
     <form v-if="view === 'lista'" class="bg-tertiary border-top p-2" @submit.prevent="addItem">
       <div class="form-row no-gutters">
-        <div class="col-7 pr-1 position-relative">
+        <div class="col-9 pr-1 position-relative">
           <input
             type="text"
             id="new-item-input"
@@ -504,10 +500,11 @@
             <button
               type="button"
               class="list-group-item list-group-item-action py-1 px-2"
-              v-for="p in newItemSuggerimenti"
-              :key="p.id"
-              @mousedown.prevent="selezionaSuggerimentoNuovoArticolo(p)">
-              {{ p.nome }}
+              v-for="s in newItemSuggerimenti"
+              :key="s.prodotto.id"
+              @mousedown.prevent="selezionaSuggerimentoNuovoArticolo(s)">
+              {{ s.prodotto.nome }}
+              <span class="badge badge-secondary ml-1" v-if="s.inLista">già in lista</span>
             </button>
           </div>
         </div>
@@ -519,11 +516,6 @@
             class="form-control"
             v-model.number="newItemQuantita"
             aria-label="Quantità">
-        </div>
-        <div class="col-2 pr-1">
-          <select class="custom-select unit-select" v-model="newItemUnita" aria-label="Unità di misura">
-            <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-          </select>
         </div>
         <div class="col-1">
           <button type="submit" class="btn btn-primary btn-block h-100 px-0 d-flex align-items-center justify-content-center" aria-label="Aggiungi">
@@ -696,7 +688,6 @@
                 <div class="d-flex align-items-center" v-if="ing.prodottoId && ingredienteInCreazione !== index">
                   <span class="flex-grow-1">
                     {{ (prodottoById(ing.prodottoId) || {}).nome }}
-                    <span class="text-muted small">({{ (prodottoById(ing.prodottoId) || {}).unita }})</span>
                   </span>
                   <button type="button" class="btn btn-link btn-sm p-0" @click="cambiaProdottoIngrediente(index)">cambia</button>
                 </div>
@@ -712,25 +703,15 @@
                 <div v-if="ingredienteInCreazione === index" class="border rounded p-2 mt-1">
                   <div class="small text-muted mb-1">Nuovo prodotto</div>
                   <input type="text" class="form-control form-control-sm mb-1" v-model="nuovoProdottoNomeInline" placeholder="Nome prodotto">
-                  <div class="form-row no-gutters mb-1">
-                    <div class="col-4 pr-1">
-                      <select class="form-control form-control-sm unit-select" v-model="nuovoProdottoUnitaInline">
-                        <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-                      </select>
-                    </div>
-                    <div class="col-8">
-                      <select class="form-control form-control-sm" v-model="nuovoProdottoCategoriaInline">
-                        <option :value="null">Senza categoria</option>
-                        <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
-                      </select>
-                    </div>
-                  </div>
+                  <select class="form-control form-control-sm mb-1" v-model="nuovoProdottoCategoriaInline">
+                    <option :value="null">Senza categoria</option>
+                    <option v-for="c in categorie" :key="c.id" :value="c.id">{{ c.nome }}</option>
+                  </select>
                   <button type="button" class="btn btn-sm btn-primary mr-1" @click="confermaNuovoProdottoInline(index)">Crea prodotto</button>
                   <button type="button" class="btn btn-sm btn-outline-secondary" @click="annullaCreazioneProdottoInline">Annulla</button>
                 </div>
 
                 <div class="d-flex align-items-center mt-2">
-                  <input type="number" min="0" step="0.1" class="form-control form-control-sm mr-2" style="max-width: 100px;" v-model.number="ing.quantita" aria-label="Quantità">
                   <button type="button" class="btn btn-sm btn-outline-danger ml-auto" @click="rimuoviIngredienteDraft(index)" aria-label="Rimuovi ingrediente">
                     <mdi-icon name="trash-can-outline" :size="14"></mdi-icon>
                   </button>
@@ -867,7 +848,7 @@
 
       <button type="button" class="btn btn-link text-decoration-none text-left text-dark p-0" @click="toggleExpand">
         <span :class="{ 'text-strike text-muted': item.acquistato }">{{ item.nome }}</span>
-        <span class="badge badge-light ml-2" v-if="item.quantita">{{ item.quantita }} {{ item.unita }}</span>
+        <span class="badge badge-light ml-2" v-if="item.quantita">{{ item.quantita }}</span>
       </button>
 
       <button type="button" class="btn btn-link btn-sm text-danger p-0 ml-auto" @click="remove" aria-label="Togli dalla lista">
@@ -881,15 +862,9 @@
           <label class="small text-muted mb-1">Nome</label>
           <input type="text" class="form-control form-control-sm" v-model="item.nome">
         </div>
-        <div class="col-3 col-sm-2 form-group mb-2">
+        <div class="col-6 col-sm-3 form-group mb-2">
           <label class="small text-muted mb-1">Quantità</label>
           <input type="number" min="0" step="0.1" class="form-control form-control-sm" v-model.number="item.quantita">
-        </div>
-        <div class="col-3 col-sm-1 form-group mb-2">
-          <label class="small text-muted mb-1">Unità</label>
-          <select class="form-control form-control-sm unit-select" v-model="item.unita">
-            <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-          </select>
         </div>
         <div class="col-6 col-sm-3 form-group mb-2">
           <label class="small text-muted mb-1">Categoria</label>
@@ -931,13 +906,7 @@
           <label class="small text-muted mb-1">Nome</label>
           <input type="text" class="form-control form-control-sm" v-model="prodotto.nome">
         </div>
-        <div class="col-4 col-sm-2 form-group mb-2">
-          <label class="small text-muted mb-1">Unità</label>
-          <select class="form-control form-control-sm unit-select" v-model="prodotto.unita">
-            <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
-          </select>
-        </div>
-        <div class="col-8 col-sm-4 form-group mb-2">
+        <div class="col-12 col-sm-6 form-group mb-2">
           <label class="small text-muted mb-1">Categoria</label>
           <select class="form-control form-control-sm" v-model="prodotto.categoriaId">
             <option :value="null">Senza categoria</option>
@@ -1172,25 +1141,25 @@
   </div>
 </script>
 
-<script src="js/vue.min.js?v=20261020c"></script>
+<script src="js/vue.min.js?v=20261117a"></script>
 <!-- Trascinamento ricette nel Piano: libreria self-hosted (MIT, github.com/SortableJS/Sortable), niente CDN -->
-<script src="js/sortable.min.js?v=20261020c"></script>
-<script src="js/icons.js?v=20261020c"></script>
-<script src="js/data-model.js?v=20261020c"></script>
-<script src="js/components.js?v=20261020c"></script>
-<script src="js/feature-lista.js?v=20261020c"></script>
-<script src="js/feature-categorie.js?v=20261020c"></script>
-<script src="js/feature-prodotti.js?v=20261020c"></script>
-<script src="js/feature-ricette.js?v=20261020c"></script>
-<script src="js/feature-piano.js?v=20261020c"></script>
+<script src="js/sortable.min.js?v=20261117a"></script>
+<script src="js/icons.js?v=20261117a"></script>
+<script src="js/data-model.js?v=20261117a"></script>
+<script src="js/components.js?v=20261117a"></script>
+<script src="js/feature-lista.js?v=20261117a"></script>
+<script src="js/feature-categorie.js?v=20261117a"></script>
+<script src="js/feature-prodotti.js?v=20261117a"></script>
+<script src="js/feature-ricette.js?v=20261117a"></script>
+<script src="js/feature-piano.js?v=20261117a"></script>
 <!-- Account (login su hub di autenticazione configurabile) e sincronizzazione cloud -->
-<script src="js/auth.js?v=20261020c"></script>
-<script src="js/sync.js?v=20261020c"></script>
-<script src="js/feature-account.js?v=20261020c"></script>
+<script src="js/auth.js?v=20261117a"></script>
+<script src="js/sync.js?v=20261117a"></script>
+<script src="js/feature-account.js?v=20261117a"></script>
 <!-- Impegni da Google Calendar (sola lettura, via api/calendar.php) -->
-<script src="js/calendar.js?v=20261020c"></script>
-<script src="js/feature-calendario.js?v=20261020c"></script>
-<script src="js/app.js?v=20261020c"></script>
+<script src="js/calendar.js?v=20261117a"></script>
+<script src="js/feature-calendario.js?v=20261117a"></script>
+<script src="js/app.js?v=20261117a"></script>
 
 <!--
   Service Worker: rende l'app completamente offline anche a scheda/app

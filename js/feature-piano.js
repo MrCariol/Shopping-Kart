@@ -510,7 +510,9 @@
 
       confermaGeneraLista: function () {
         var self = this;
-        var totali = {}; // prodottoId -> quantita sommata
+        // prodottoId -> porzioni sommate: ogni ingrediente di ogni ricetta
+        // pianificata vale 1 porzione
+        var totali = {};
 
         Object.keys(this.generaListaSelezione).forEach(function (dateKey) {
           var selGiorno = self.generaListaSelezione[dateKey];
@@ -527,7 +529,7 @@
               if (!ricetta) return;
               ricetta.ingredienti.forEach(function (ing) {
                 totali[ing.prodottoId] =
-                  (totali[ing.prodottoId] || 0) + ing.quantita;
+                  (totali[ing.prodottoId] || 0) + 1;
               });
             });
           });
@@ -547,7 +549,7 @@
           var prodotto = self.prodottoById(prodottoId);
           if (!prodotto) return; // prodotto eliminato nel frattempo: salta
 
-          var quantitaTotale = Math.round(totali[prodottoId] * 100) / 100;
+          var quantitaTotale = totali[prodottoId];
           var nomeNorm = prodotto.nome
             .replace(/^\s+|\s+$/g, "")
             .toLowerCase();
@@ -557,7 +559,6 @@
             if (
               !esistente &&
               !it.acquistato &&
-              it.unita === prodotto.unita &&
               it.nome.replace(/^\s+|\s+$/g, "").toLowerCase() === nomeNorm
             ) {
               esistente = it;
@@ -566,14 +567,14 @@
 
           if (esistente) {
             esistente.quantita =
-              Math.round((esistente.quantita + quantitaTotale) * 100) / 100;
+              Math.round(((esistente.quantita || 0) + quantitaTotale) * 100) /
+              100;
             aggiornati++;
           } else {
             self.lista.push({
               id: DataModel.uid("item"),
               nome: prodotto.nome,
               quantita: quantitaTotale,
-              unita: prodotto.unita,
               categoriaId: prodotto.categoriaId,
               acquistato: false,
               dataAggiunta: new Date().toISOString()

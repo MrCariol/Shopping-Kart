@@ -48,7 +48,6 @@
     var data = {
       view: "lista", // 'lista' | 'piano' | 'categorie-lista' | 'categorie-ricette' | 'prodotti' | 'ricette' | 'impostazioni'
       appVersion: DataModel.APP_VERSION,
-      units: DataModel.UNITS,
       pastiConfig: DataModel.PASTI,
       aggiornatoIl: 0,
       temaScuro: false,
@@ -193,6 +192,7 @@
             return;
           }
 
+          DataModel.rimuoviUnitaEQuantitaRicette(parsed);
           self.lista = parsed.lista;
           self.categorie = parsed.categorie;
           if (

@@ -24,7 +24,6 @@
         // creazione al volo di un prodotto dentro una riga ingrediente
         ingredienteInCreazione: null, // indice della riga, o null
         nuovoProdottoNomeInline: "",
-        nuovoProdottoUnitaInline: "",
         nuovoProdottoCategoriaInline: null
       };
     },
@@ -91,7 +90,8 @@
 
       // ---------- ingredienti bozza ----------
       aggiungiIngredienteDraft: function () {
-        this.ricettaDraft.ingredienti.push({ prodottoId: null, quantita: 1 });
+        // nessuna quantita': ogni ingrediente vale implicitamente 1 porzione
+        this.ricettaDraft.ingredienti.push({ prodottoId: null });
       },
 
       rimuoviIngredienteDraft: function (index) {
@@ -113,7 +113,6 @@
       avviaCreazioneProdottoInline: function (index, nomeIniziale) {
         this.ingredienteInCreazione = index;
         this.nuovoProdottoNomeInline = nomeIniziale || "";
-        this.nuovoProdottoUnitaInline = "";
         this.nuovoProdottoCategoriaInline = null;
       },
 
@@ -124,7 +123,6 @@
       confermaNuovoProdottoInline: function (index) {
         var p = this.creaProdotto(
           this.nuovoProdottoNomeInline,
-          this.nuovoProdottoUnitaInline,
           this.nuovoProdottoCategoriaInline
         );
         if (!p) return;
@@ -156,12 +154,12 @@
         }
         var invalido = false;
         d.ingredienti.forEach(function (ing) {
-          if (!ing.prodottoId || !ing.quantita || ing.quantita <= 0) {
+          if (!ing.prodottoId) {
             invalido = true;
           }
         });
         if (invalido) {
-          return "Ogni ingrediente deve avere un prodotto e una quantità maggiore di zero.";
+          return "Ogni ingrediente deve avere un prodotto.";
         }
         return "";
       },

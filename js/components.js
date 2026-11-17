@@ -78,7 +78,6 @@
     template: "#item-row-template",
     props: {
       item: { type: Object, required: true },
-      units: { type: Array, required: true },
       categories: { type: Array, required: true }
     },
     data: function () {
@@ -105,7 +104,6 @@
     template: "#prodotto-row-template",
     props: {
       prodotto: { type: Object, required: true },
-      units: { type: Array, required: true },
       categories: { type: Array, required: true }
     },
     data: function () {

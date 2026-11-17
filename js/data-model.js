@@ -47,9 +47,7 @@
   // aggiornamenti): un solo numero di versione per tutta l'app, mostrato
   // in fondo a Impostazioni. Da aggiornare insieme agli altri file prima
   // di ogni pubblicazione.
-  var APP_VERSION = "20261020c";
-
-  var UNITS = ["", "kg", "g", "l", "ml", "conf"];
+  var APP_VERSION = "20261117a";
 
   // palette a swatch per le categorie ricetta - riusa gli stessi hex dei
   // contestuali Bootstrap 4 gia' presenti nell'app (badge/alert), per
@@ -284,6 +282,37 @@
     return out;
   }
 
+  // ---------- rimozione unita' di misura e quantita' ricette ----------
+  // Dalla v20261117a le unita' di misura non esistono piu' (ne' su articoli
+  // lista ne' su prodotti) e gli ingredienti ricetta non hanno piu' una
+  // quantita' (ogni ingrediente vale implicitamente 1 porzione). Questa
+  // funzione elimina i vecchi campi dai dati gia' salvati: dopo il primo
+  // passaggio non trova piu' nulla da togliere, quindi non ha altri effetti.
+  // Chiamata sia al caricamento locale sia sui dati arrivati dal server o
+  // da un backup importato (che possono essere ancora nel vecchio formato).
+  function rimuoviUnitaEQuantitaRicette(state) {
+    if (!state || typeof state !== "object") return state;
+    if (Array.isArray(state.lista)) {
+      state.lista.forEach(function (it) {
+        if (it && typeof it === "object") delete it.unita;
+      });
+    }
+    if (Array.isArray(state.prodotti)) {
+      state.prodotti.forEach(function (p) {
+        if (p && typeof p === "object") delete p.unita;
+      });
+    }
+    if (Array.isArray(state.ricette)) {
+      state.ricette.forEach(function (r) {
+        if (!r || !Array.isArray(r.ingredienti)) return;
+        r.ingredienti.forEach(function (ing) {
+          if (ing && typeof ing === "object") delete ing.quantita;
+        });
+      });
+    }
+    return state;
+  }
+
   function normalizeSortMode(value, fallback) {
     return value === "categoria" ||
       value === "alpha-asc" ||
@@ -308,7 +337,7 @@
     if (typeof parsed.aggiornatoIl === "number")
       state.aggiornatoIl = parsed.aggiornatoIl;
 
-    return state;
+    return rimuoviUnitaEQuantitaRicette(state);
   }
 
   function load() {
@@ -508,7 +537,6 @@
     STORAGE_KEY_V2: STORAGE_KEY_V2,
     STORAGE_KEY_V1: STORAGE_KEY_V1,
     APP_VERSION: APP_VERSION,
-    UNITS: UNITS,
     SWATCH_COLORS: SWATCH_COLORS,
     DEFAULT_CATEGORIE: DEFAULT_CATEGORIE,
     DEFAULT_CATEGORIE_RICETTE: DEFAULT_CATEGORIE_RICETTE,
@@ -516,6 +544,7 @@
     GIORNI_SETTIMANA: GIORNI_SETTIMANA,
     MESI_ABBR: MESI_ABBR,
     uid: uid,
+    rimuoviUnitaEQuantitaRicette: rimuoviUnitaEQuantitaRicette,
     compareNomi: compareNomi,
     pad2: pad2,
     isoDateKey: isoDateKey,

@@ -173,6 +173,7 @@
   // dall'adozione silenziosa sia dalla risoluzione manuale di un
   // conflitto con scelta "server"
   function adoptRemote(vueApp, data, remoteLastModified) {
+    DataModel.rimuoviUnitaEQuantitaRicette(data);
     vueApp.lista = data.lista || [];
     vueApp.categorie = data.categorie || vueApp.categorie;
     vueApp.sortMode = data.sortMode || vueApp.sortMode;

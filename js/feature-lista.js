@@ -14,7 +14,6 @@
         sortMode: "categoria", // 'categoria' | 'alpha-asc' | 'alpha-desc'
         newItemNome: "",
         newItemQuantita: null,
-        newItemUnita: "",
         newItemSuggerimentiAperti: false,
         prodottiAperto: false
       };
@@ -130,17 +129,25 @@
         });
       },
 
-      // suggerimenti per la tendina sotto la barra aggiungi articolo:
-      // stesso pool di prodottiDaAggiungere (niente duplicati gia' in
-      // lista), filtrato per corrispondenza parziale col testo digitato
+      // suggerimenti per la tendina sopra la barra aggiungi articolo:
+      // tutto il catalogo prodotti, filtrato per corrispondenza parziale
+      // col testo digitato. Ogni voce e' {prodotto, inLista}: i prodotti
+      // gia' presenti nella lista restano visibili, marcati "gia' in lista"
       newItemSuggerimenti: function () {
         var q = this.newItemNome.replace(/^\s+|\s+$/g, "").toLowerCase();
         if (!q) return [];
-        return this.prodottiDaAggiungere
+        var nomiInLista = this.lista.map(function (it) {
+          return it.nome.replace(/^\s+|\s+$/g, "").toLowerCase();
+        });
+        return this.prodottiOrdinati
           .filter(function (p) {
             return p.nome.toLowerCase().indexOf(q) !== -1;
           })
-          .slice(0, 8);
+          .slice(0, 8)
+          .map(function (p) {
+            var nome = p.nome.replace(/^\s+|\s+$/g, "").toLowerCase();
+            return { prodotto: p, inLista: nomiInLista.indexOf(nome) !== -1 };
+          });
       }
     },
 
@@ -156,11 +163,16 @@
           id: DataModel.uid("item"),
           nome: nome,
           quantita: qty,
-          unita: this.newItemUnita || "",
           categoriaId: null,
           acquistato: false,
           dataAggiunta: new Date().toISOString()
         });
+
+        // un articolo scritto a mano entra anche nel catalogo prodotti
+        // (senza categoria), cosi' compare poi nei suggerimenti
+        if (!this.prodottoPerNome(nome)) {
+          this.creaProdotto(nome, null);
+        }
 
         this.newItemNome = "";
         this.newItemQuantita = null;
@@ -175,9 +187,13 @@
       // scelta di un suggerimento dalla tendina della barra aggiungi
       // articolo: stesso comportamento del bottone "+" nell'accordion
       // Prodotti (aggiungiProdottoALista), cosi' i due punti di ingresso
-      // restano coerenti
-      selezionaSuggerimentoNuovoArticolo: function (prodotto) {
-        this.aggiungiProdottoALista(prodotto);
+      // restano coerenti. Un prodotto gia' in lista non viene duplicato.
+      selezionaSuggerimentoNuovoArticolo: function (suggerimento) {
+        if (suggerimento.inLista) {
+          this.showToast("Già in lista: " + suggerimento.prodotto.nome);
+        } else {
+          this.aggiungiProdottoALista(suggerimento.prodotto);
+        }
         this.newItemNome = "";
         this.newItemSuggerimentiAperti = false;
 
@@ -230,7 +246,6 @@
           id: DataModel.uid("item"),
           nome: prodotto.nome,
           quantita: null,
-          unita: prodotto.unita,
           categoriaId: prodotto.categoriaId,
           acquistato: false,
           dataAggiunta: new Date().toISOString()

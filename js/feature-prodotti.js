@@ -27,14 +27,30 @@
     },
 
     methods: {
-      // usato dalla creazione al volo di un prodotto dentro l'editor ricetta
-      creaProdotto: function (nome, unita, categoriaId) {
+      // prodotto del catalogo con lo stesso nome (senza spazi ai lati,
+      // senza distinzione maiuscole/minuscole), o null
+      prodottoPerNome: function (nome) {
+        var nomeNorm = (nome || "").replace(/^\s+|\s+$/g, "").toLowerCase();
+        var found = null;
+        this.prodotti.forEach(function (p) {
+          if (
+            !found &&
+            p.nome.replace(/^\s+|\s+$/g, "").toLowerCase() === nomeNorm
+          ) {
+            found = p;
+          }
+        });
+        return found;
+      },
+
+      // usato dalla creazione al volo di un prodotto dentro l'editor
+      // ricetta e dall'aggiunta manuale di un articolo alla lista
+      creaProdotto: function (nome, categoriaId) {
         var trimmed = (nome || "").replace(/^\s+|\s+$/g, "");
         if (!trimmed) return null;
         var prodotto = {
           id: DataModel.uid("prod"),
           nome: trimmed,
-          unita: unita || "",
           categoriaId: categoriaId || null,
           ultimoAcquisto: null
         };
@@ -108,17 +124,7 @@
       // volta (ultimoAcquisto) - usato altrove solo a scopo informativo,
       // il catalogo prodotti resta unico indipendentemente da questo campo
       archiviaAcquisto: function (item) {
-        var nomeNorm = item.nome.replace(/^\s+|\s+$/g, "").toLowerCase();
-        var esistente = null;
-        this.prodotti.forEach(function (p) {
-          if (
-            !esistente &&
-            p.unita === item.unita &&
-            p.nome.replace(/^\s+|\s+$/g, "").toLowerCase() === nomeNorm
-          ) {
-            esistente = p;
-          }
-        });
+        var esistente = this.prodottoPerNome(item.nome);
 
         var ora = new Date().toISOString();
         if (esistente) {
@@ -127,7 +133,6 @@
           this.prodotti.push({
             id: DataModel.uid("prod"),
             nome: item.nome,
-            unita: item.unita,
             categoriaId: item.categoriaId,
             ultimoAcquisto: ora
           });
